@@ -14,9 +14,9 @@ A global shortcut (⌥C) opens a palette that asks which folder to open Claude C
 
 ### Projects
 
-With nothing typed, the palette lists the folders used last, here or in Claude Code itself (from its sessions in `~/.claude/projects`). Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
+With nothing typed, the palette lists the folders opened from here, newest first. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
 
-Each known project shows, on the right, its git branch, how long ago it was used and how many Claude sessions it has.
+While searching, each known project shows on the right its git branch, when it was last used ("10m ago") and how many Claude sessions it has ("4 sessions ›"). Claude Code's sessions in `~/.claude/projects` are what make a folder known and give it its last use.
 
 ### Sessions
 
@@ -25,9 +25,9 @@ Each known project shows, on the right, its git branch, how long ago it was used
 Keys:
 - **⌥C** opens the palette. With the palette open, pressing it again acts as Enter: **⌥C ⌥C** opens Claude straight in your home folder.
 - **↵** opens what is typed, or the highlighted row once you have moved with the arrows.
-- **tab** completes with the highlighted row or the first suggestion, and lists that folder's subfolders.
+- **tab** completes with the highlighted row and lists that folder's subfolders. With no row highlighted it does nothing.
 - **→** at the end of the text opens the highlighted project's sessions.
-- **↑ ↓** move through the suggestions. The list only scrolls when it has to, and keeps the next row peeking. Past the last one you reach the options.
+- **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. Past the last one you reach the options.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
 - **esc**, **⌘W** or a click outside close the palette.
 - **⌘Q** with the palette open quits the app. It starts again at login or from Applications.

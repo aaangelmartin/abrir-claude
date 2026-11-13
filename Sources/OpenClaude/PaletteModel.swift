@@ -128,15 +128,8 @@ final class PaletteModel: ObservableObject {
         projects[ProjectIndex.trimmed(FolderPath.resolve(row))]
     }
 
-    /// with nothing typed: the folders used last, here or in claude, newest first
-    private func recentRows() -> [String] {
-        let known = projects.values
-            .filter { $0.lastUsed != nil }
-            .sorted { $0.lastUsed! > $1.lastUsed! }
-            .prefix(12)
-            .map { FolderPath.display($0.path) }
-        return known.isEmpty ? Recents.all : Array(known)
-    }
+    /// with nothing typed: the folders opened from here, newest first, as plain rows
+    private func recentRows() -> [String] { Recents.all }
 
     /// a name typed, not a path: the home folder's own folders and every known project, matched
     /// fuzzily (letters in order, anywhere), the best first and the recently used a little ahead
@@ -330,9 +323,10 @@ final class PaletteModel: ObservableObject {
                 selected = 0
             }
         case .up:
-            guard !rows.isEmpty else { return true }
+            // at the top already: stay there, never wrap round to the bottom
+            guard !rows.isEmpty, let selected else { return true }
             selectedByPointer = false
-            if let selected { self.selected = selected == 0 ? nil : selected - 1 } else { selected = rows.count - 1 }
+            self.selected = selected == 0 ? nil : selected - 1
         case .jumpDown: optionRow = 0
         case .jumpUp: selected = Self.defaultSelection(text: text, rows: rows)
         case .tab: complete()
@@ -365,15 +359,10 @@ final class PaletteModel: ObservableObject {
         return true
     }
 
-    /// tab: the lit row goes into the field and the rows go one level down. with nothing lit, the first
-    /// tab lights the first row, so tab never acts on something unseen.
+    /// tab: the lit row goes into the field and the rows go one level down. with nothing lit, tab
+    /// does nothing.
     func complete() {
-        guard !rows.isEmpty else { NSSound.beep(); return }
-        guard let selected, rows.indices.contains(selected) else {
-            selectedByPointer = false
-            self.selected = 0
-            return
-        }
+        guard let selected, rows.indices.contains(selected) else { return }
         text = rows[selected]
     }
 

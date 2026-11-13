@@ -160,6 +160,27 @@ import Testing
 }
 
 @MainActor
+@Suite struct KeyTests {
+    @Test func upAtTheTopStaysThere() {
+        let m = PaletteModel()
+        m.text = "Dev"
+        guard !m.rows.isEmpty else { return }
+        m.selected = nil
+        _ = m.handle(.up)
+        #expect(m.selected == nil)
+    }
+
+    @Test func tabWithNothingLitDoesNothing() {
+        let m = PaletteModel()
+        m.text = "Dev"
+        m.selected = nil
+        _ = m.handle(.tab)
+        #expect(m.text == "Dev")
+        #expect(m.selected == nil)
+    }
+}
+
+@MainActor
 @Suite struct MarkedDefaultTests {
     @Test func openingStartsFromTheDefaults() {
         let m = PaletteModel()

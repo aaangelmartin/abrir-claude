@@ -155,7 +155,7 @@ private struct FolderList: View {
                         FolderRow(
                             row: row, prefix: model.typedParent, theme: theme,
                             isSelected: index == model.selected,
-                            info: model.info(for: row),
+                            info: model.showingRecents ? nil : model.info(for: row),
                             openSessions: { model.openSessions(of: row) }
                         )
                         .id(index)
@@ -325,10 +325,10 @@ private struct FolderRow: View {
                 }
                 .frame(maxWidth: 140, alignment: .trailing)
             }
-            if let used = info.lastUsed { Text(Ago.short(used)).monospacedDigit() }
+            if let used = info.lastUsed { Text(Ago.short(used) == "now" ? "just now" : Ago.short(used) + " ago").monospacedDigit() }
             if !info.sessions.isEmpty {
                 HStack(spacing: 3) {
-                    Text("\(info.sessions.count)").monospacedDigit()
+                    Text(info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions").monospacedDigit()
                     Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
                 }
                 .padding(.horizontal, 6)
