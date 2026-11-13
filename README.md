@@ -1,142 +1,141 @@
 # abrir claude
 
-Un atajo global (⌥C) abre una paleta que pregunta en qué carpeta abrir Claude Code. Al confirmar, abre una ventana nueva de Terminal, hace `cd` a esa carpeta y ejecuta `claude`.
+A global shortcut (⌥C) opens a palette that asks which folder to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
 
-## Uso
+## Usage
 
-| Escribes | Se abre en |
+| You type | It opens in |
 |---|---|
-| nada | tu carpeta de usuario |
-| `proyectos/mi-app` | `~/proyectos/mi-app` |
-| `~/proyectos/mi-app` | igual que lo anterior |
-| `/Volumes/disco/obra` | esa ruta absoluta |
-| una carpeta que no existe | Terminal muestra el error de `cd` y no arranca claude |
+| nothing | your home folder |
+| `projects/my-app` | `~/projects/my-app` |
+| `~/projects/my-app` | same as above |
+| `/Volumes/disk/work` | that absolute path |
+| a folder that does not exist | Terminal shows the `cd` error and claude does not start |
 
-Teclas:
-- **⌥C** abre la paleta. Con la paleta abierta, volver a pulsarlo equivale a Enter: **⌥C ⌥C** abre Claude directamente en tu carpeta de usuario.
-- **↵** abre la carpeta escrita, o la fila elegida si has movido la selección con las flechas.
-- **tab** completa con la fila elegida o con la primera sugerencia, y muestra las subcarpetas de esa carpeta.
-- **↑ ↓** recorren las sugerencias. La lista solo se desplaza cuando hace falta, y dejando ver la fila siguiente. Pasado el último elemento se vuelve al campo de texto.
-- **⌘A ⌘C ⌘V ⌘X ⌘Z** funcionan en el campo, gracias a un menú Edición que no se ve.
-- **esc**, **⌘W** o un clic fuera cierran la paleta sin hacer nada.
-- **⌘Q** con la paleta abierta cierra la app. Vuelve a arrancar al iniciar sesión o abriéndola desde Aplicaciones.
+Keys:
+- **⌥C** opens the palette. With the palette open, pressing it again acts as Enter: **⌥C ⌥C** opens Claude straight in your home folder.
+- **↵** opens what is typed, or the highlighted row once you have moved with the arrows.
+- **tab** completes with the highlighted row or the first suggestion, and lists that folder's subfolders.
+- **↑ ↓** move through the suggestions. The list only scrolls when it has to, and keeps the next row peeking. Past the last one you reach the options.
+- **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
+- **esc**, **⌘W** or a click outside close the palette.
+- **⌘Q** with the palette open quits the app. It starts again at login or from Applications.
 
-### Modelo, esfuerzo, permisos y sesión
+### Model, effort, permissions and session
 
-Abajo hay una línea que dice, en este orden, con qué se lanza Claude: **Modelo · Esfuerzo · Permisos · Sesión**. Cada valor se pinta como lo pinta Claude Code. Al bajar con **↓** desde la última carpeta (o con **⌘↓**, o con un clic) se despliega en una fila por opción:
+At the bottom, one line says how Claude will be launched: **Model · Effort · Permissions · Session**, each value painted the way Claude Code paints it. **↓** past the last folder (or **⌘↓**, or a click) opens it into one row per option:
 
-| Fila | Control | Opción de `claude` |
+| Row | Control | `claude` flag |
 |---|---|---|
-| Modelo | control segmentado a todo el ancho: Por defecto, Fable, Opus, Sonnet, Haiku, cada uno con su número (Opus 5.5). El número se lee del propio `claude` instalado, así que se actualiza solo cuando Claude Code se actualiza | `--model` con el alias (`opus`), que siempre lanza el último |
-| Esfuerzo | una pastilla «auto» (usa el nivel de tu `settings.json`; la bola se queda hueca en ese nivel) y un carril con los cinco niveles reales, de Más rápido a Más listo: low, medium, high, xhigh y max. La bola lleva un punto del color del nivel y brilla en él; al arrastrar sigue al ratón y al soltar se coloca en el nivel más cercano | `--effort` |
-| Permisos | «Por defecto» aparte (lo que diga tu configuración) y dos grupos: **Te pregunta** (Manual, Plan) y **No te pregunta** (Ediciones, Auto, No preguntar, Saltar). El elegido se tiñe de su color y debajo sale su símbolo y qué hace | `--permission-mode` |
-| Sesión | control segmentado: Nueva, Continuar, Elegir | `--continue`, `--resume` |
+| Model | full-width segmented control: Default, Fable, Opus, Sonnet, Haiku, each with its number (Opus 5.5). The number is read from the installed `claude` itself, so it updates on its own when Claude Code updates | `--model` with the alias (`opus`), which always runs the newest |
+| Effort | an **Auto** pill and a track with the five real levels, Faster to Smarter: low, medium, high, xhigh, max. The ball carries a dot of the level's colour and glows in it; dragged, it follows the pointer and settles on the nearest level. On Auto the track steps back and a hollow ball marks the level Claude will use, "medium · default" | `--effort` |
+| Permissions | the modes Claude's Code view offers, in its order: Default, Manual, Accept edits, Plan, Auto, Bypass. The picked one is tinted in its colour; hover a mode to see what it does | `--permission-mode` |
+| Session | segmented control: New, Continue, Resume | `--continue`, `--resume` |
 
-Los colores salen de la tabla del tema oscuro que lleva dentro el propio `claude`:
+The colours come from the dark theme table inside `claude` itself:
 
-| Valor | Color |
+| Value | Colour |
 |---|---|
-| esfuerzo low | `warning`, amarillo |
-| esfuerzo medium | `success`, verde |
-| esfuerzo high | `permission`, lavanda |
-| esfuerzo xhigh | `autoAccept`, morado, con brillo animado |
-| esfuerzo max | arcoíris animado |
-| permisos Manual | gris, con `⏸` |
-| permisos Plan | `planMode`, verde azulado, con `⏸` |
-| permisos Aceptar ediciones | `autoAccept`, morado, con `⏵⏵` |
-| permisos Auto | `warning`, amarillo, con `⏵⏵` |
-| permisos No preguntar y Saltar permisos | `error`, rosa rojizo, con `⏵⏵` |
+| effort low | `warning`, yellow |
+| effort medium | `success`, green |
+| effort high | `permission`, lavender |
+| effort xhigh | `autoAccept`, purple, with a moving shimmer |
+| effort max | moving rainbow |
+| Manual | grey, `⏸` |
+| Plan | `planMode`, teal, `⏸` |
+| Accept edits | `autoAccept`, purple, `⏵⏵` |
+| Auto | `warning`, yellow, `⏵⏵` |
+| Bypass | `error`, pink red, `⏵⏵` |
 
-Teclas:
-- **↑ ↓** cambian de fila, y **↑** desde la primera vuelve a las carpetas.
-- **← →** cambian el valor; la pastilla del elegido se desliza. El slider se arrastra con el ratón: la bola sigue al puntero y al soltar se coloca en el nivel más cercano.
-- **esc** pliega las opciones; un segundo **esc** cierra la ventana.
-- **↵** o **⌥C** lanzan Claude.
+Keys in the options:
+- **↑ ↓** move between rows, and **↑** from the first goes back to the folders.
+- **← →** change the value. On effort, **←** from low goes back to Auto.
+- **esc** folds the options; a second **esc** closes the palette.
+- **↵** or **⌥C** launch Claude.
 
-"Por defecto" y "auto" no añaden nada al comando, así que se aplica tu configuración de Claude Code. En permisos, "Por defecto" muestra qué modo dice tu `~/.claude/settings.json`. Las elecciones se recuerdan para la próxima vez, guardadas por nombre, así que reordenar los valores no cambia lo elegido.
+Default and Auto add nothing to the command, so Claude's own defaults and your settings apply. Picks are remembered, by name, so reordering values never changes what was picked.
 
-La ventana tiene un tamaño fijo y transparente, y la tarjeta crece y encoge dentro con animación, con su sombra dibujada en SwiftUI. Por eso abrir y plegar las opciones es fluido y no salta: al abrir, las filas entran una tras otra.
+The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. That is why opening and folding the options is smooth: the rows come in one after another.
 
-El atajo se fija en `App.swift` (`openClaudeShortcut`) y se vuelve a aplicar en cada arranque. Ojo: mientras la app está en marcha, ⌥C ya no escribe "©".
+The shortcut is set in `App.swift` (`openClaudeShortcut`) and applied again on every launch. While the app runs, ⌥C no longer types "©".
 
-Abrir la app desde Spotlight o Finder también muestra la paleta. La lista muestra todas las subcarpetas. Tiene una barra de scroll propia, fina y sin carril, que aparece al desplazarse, y los bordes se difuminan cuando hay más contenido arriba o abajo. La parte de la ruta que ya has escrito sale atenuada.
+Opening the app from Spotlight or Finder also shows the palette. The list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
 
-## Aspecto
+## Look
 
-Por defecto replica la **entrada rápida de Claude** (⌥Espacio en la app de escritorio). Los valores se han sacado de su propia hoja de estilos (`quick-window.html` dentro de `app.asar`):
-- panel transparente con sombra, de 606 px de ancho, centrado en la pantalla principal
-- se arrastra y recuerda dónde lo dejaste
-- barra de 56 px de alto con radio 16
-- fondo en degradado de `#403F3E` (al 95 %) a `#292523`, con un borde de 0,5 px blanco al 20 %
-- el destello oficial en `#D97757` a 18 px, en una celda de 56×56
-- Anthropic Sans a 16 px en blanco, placeholder `#A6A39B` y cursor blanco
-- sin borde de campo, sin aro de foco y sin fundido al aparecer
+By default it copies **Claude's quick entry** (⌥Space in the desktop app). The values come from its own stylesheet (`quick-window.html` inside `app.asar`):
+- a transparent, shadowed panel 606 px wide, centred on the main display
+- draggable, and it remembers where you left it
+- a 56 px bar with a 16 radius
+- a gradient from `#403F3E` (at 95 %) to `#292523`, with a 0.5 px white ring at 20 %
+- the starburst in `#D97757` at 18 px, in a 56×56 cell
+- Anthropic Sans 16 px in white, placeholder `#A6A39B`, white caret
+- no field border, no focus ring, no fade when it appears
 
-Las carpetas usan los tokens oscuros de Claude: texto `#C2C0B6`, iconos `#9C9A92`, y blanco al 9 % para la fila elegida.
+Folders use Claude's dark tokens: text `#C2C0B6`, icons `#9C9A92`, and white at 9 % for the highlighted row.
 
-Anthropic Sans se carga al arrancar desde `/Applications/Claude.app`; no se copia a este proyecto. Sin la app de Claude se usa la fuente del sistema.
+Anthropic Sans is loaded at launch from `/Applications/Claude.app`; it is not copied into this project. Without the Claude app the system font is used.
 
-El estilo **laaabs.** usa la misma barra en negro, con Outfit y el cursor cyan. Para cambiar de estilo:
+The **laaabs.** style uses the same bar in black, with Outfit and a cyan caret. To switch:
 
 ```sh
-defaults write com.aaangelmartin.abrir-claude theme laaabs   # o claude
+defaults write com.aaangelmartin.abrir-claude theme laaabs   # or claude
 pkill -x AbrirClaude; open ~/Applications/"Abrir Claude.app"
 ```
 
-## Instalar en un Mac
+## Install
 
-Requisitos:
-- macOS 14 o posterior y Xcode (Swift 6.2 o posterior)
-- el kit de laaabs. en `~/Desktop/laaabs/marca/ui-swift`. Si está en otra ruta, cambia el `path:` de `Package.swift`
-- `claude` en el PATH de una shell de login (`zsh -lic 'command -v claude'`)
-
-Pasos:
+Requirements:
+- macOS 14 or later and Xcode (Swift 6.2 or later)
+- the laaabs. kit at `~/Desktop/laaabs/marca/ui-swift`. If it lives elsewhere, change the `path:` in `Package.swift`
+- `claude` on a login shell's PATH (`zsh -lic 'command -v claude'`)
 
 ```sh
 cd ~/Developer/abrir-claude
 ./scripts/install.sh
 ```
 
-El script hace todo esto:
-1. Compila para arm64 y x86_64.
-2. Monta `build/Abrir Claude.app` y genera el icono a partir de `Resources/claude.svg` (marca blanca sobre el naranja de Claude).
-3. Firma con el primer certificado "Developer ID Application" válido del llavero. Con `SIGN_IDENTITY=-` firma ad hoc.
-4. La instala en `~/Applications` y la abre.
+The script:
+1. Builds for arm64 and x86_64.
+2. Assembles `build/Abrir Claude.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
+3. Signs with the first valid "Developer ID Application" certificate in the keychain. `SIGN_IDENTITY=-` signs ad hoc.
+4. Installs it in `~/Applications` and opens it.
 
-En el primer arranque se añade sola a los elementos de inicio de sesión y muestra la paleta una vez.
+On first launch it adds itself to the login items and shows the palette once.
 
-## Permisos que pide macOS
+## macOS permissions
 
-- **Controlar Terminal** (Automatización): se pide la primera vez que abres una carpeta. Si lo rechazas, la paleta lo avisa y trae un botón a Ajustes del Sistema → Privacidad y seguridad → Automatización.
-- **Elemento de inicio**: macOS avisa con una notificación de que se ha añadido. Se gestiona en Ajustes del Sistema → General → Elementos de inicio.
+- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, the palette says so and offers a button to System Settings → Privacy & Security → Automation.
+- **Login item**: macOS posts a notification that it was added. Manage it in System Settings → General → Login Items.
 
-El atajo global no necesita permiso de Accesibilidad, porque usa `KeyboardShortcuts` (Carbon hotkeys).
+The global shortcut needs no Accessibility permission, since it uses `KeyboardShortcuts` (Carbon hotkeys).
 
-## Estructura
+## Layout
 
 ```
 Sources/AbrirClaude/
-  App.swift            arranque, atajo global, elemento de inicio
-  PalettePanel.swift   panel flotante que no activa la app, teclado, posición
-  PaletteView.swift    la paleta en SwiftUI
-  Theme.swift          los dos estilos (claude y laaabs.) y la carga de las fuentes de Claude
-  PaletteModel.swift   texto, filas, selección, mensajes de estado
-  FolderPath.swift     de lo escrito a ruta absoluta y orden de shell
-  Suggestions.swift    autocompletado de carpetas y recientes
-  Terminal.swift       AppleScript que abre la ventana de Terminal
-  LaunchOptions.swift  modelo, esfuerzo, permisos y sesión, y las opciones de claude que añaden
-  OptionsView.swift    la línea de resumen, las filas, el slider de esfuerzo y el texto animado
-Resources/             Info.plist, entitlements, svg de claude
+  App.swift            launch, global shortcut, login item
+  PalettePanel.swift   floating panel that never activates the app, keys, position
+  PaletteView.swift    the palette in SwiftUI
+  Theme.swift          the two styles (claude and laaabs.) and loading Claude's fonts
+  PaletteModel.swift   text, rows, selection, notices, options
+  FolderPath.swift     from what is typed to an absolute path and a shell command
+  Suggestions.swift    folder completion and recents
+  Terminal.swift       the AppleScript that opens the Terminal window
+  LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
+  ModelVersions.swift  the newest model numbers, read from the installed claude
+  OptionsView.swift    the summary line, the rows, the effort slider and the painted text
+Resources/             Info.plist, entitlements, claude svg
 scripts/               install.sh, make-icon.swift
-Tests/                 tests de rutas, sugerencias, selección y opciones (swift test)
-                       SNAPSHOT_DIR=/ruta swift test --filter Snapshot dibuja la paleta en png sin abrirla
+Tests/                 paths, suggestions, selection, options and model versions (swift test)
+                       SNAPSHOT_DIR=/path swift test --filter Snapshot renders the palette to png off screen
 ```
 
-## Desinstalar
+## Uninstall
 
 ```sh
 pkill -x AbrirClaude
 rm -rf ~/Applications/"Abrir Claude.app"
 ```
 
-Después, quítala de Ajustes del Sistema → General → Elementos de inicio si sigue apareciendo.
+Then remove it from System Settings → General → Login Items if it is still listed.
