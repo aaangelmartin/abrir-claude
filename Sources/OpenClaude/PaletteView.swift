@@ -55,7 +55,7 @@ struct PaletteView: View {
             // a folder slides in from the right; going back, it fades
             .id(model.moment == .step ? "step:\(model.stepFolder ?? "")" : model.moment == .running ? "running" : "folders")
             .transition(model.moment == .step
-                        ? .asymmetric(insertion: .opacity.combined(with: .offset(x: 24)), removal: .opacity)
+                        ? .asymmetric(insertion: .opacity.combined(with: .offset(x: 12)), removal: .opacity)
                         : .opacity)
 
             // one footer everywhere, its left side changing with what can be done
@@ -65,10 +65,9 @@ struct PaletteView: View {
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
         // the card grows and shrinks smoothly as what it shows changes
-        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: model.moment)
-        .animation(.spring(response: 0.22, dampingFraction: 0.92), value: model.stepFolder)
-        .animation(.spring(response: 0.18, dampingFraction: 0.95), value: model.count)
-        .animation(.spring(response: 0.2, dampingFraction: 0.88), value: model.selected)
+        .animation(.easeOut(duration: 0.18), value: model.moment)
+        .animation(.easeOut(duration: 0.18), value: model.stepFolder)
+        .animation(.easeOut(duration: 0.1), value: model.selected)
         .environment(\.litNamespace, lit)
         .background(
             LinearGradient(colors: [theme.gradientTop, theme.gradientBottom], startPoint: .top, endPoint: .bottom)
@@ -76,7 +75,6 @@ struct PaletteView: View {
         .clipShape(RoundedRectangle(cornerRadius: Self.radius))
         .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(theme.ring, lineWidth: 0.5))
         .opacity(shown ? 1 : 0)
-        .scaleEffect(shown ? 1 : 0.985, anchor: .top)
         .onAppear { fieldFocused = true; appear() }
         .onReceive(NotificationCenter.default.publisher(for: .paletteDidShow)) { _ in fieldFocused = true; appear() }
     }
@@ -85,7 +83,7 @@ struct PaletteView: View {
         var instant = Transaction()
         instant.disablesAnimations = true
         withTransaction(instant) { shown = false }
-        withAnimation(.easeOut(duration: 0.14)) { shown = true }
+        withAnimation(.easeOut(duration: 0.1)) { shown = true }
     }
 
     // MARK: the bar

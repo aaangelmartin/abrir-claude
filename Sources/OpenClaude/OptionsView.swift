@@ -72,30 +72,28 @@ struct OptionsSection: View {
 
     // MARK: folded
 
+    /// the bottom bar: on the left what can be done (the launch values and ⌥↓ to change them, or over
+    /// the running sessions the keys that act on them), on the right the plan's use
     private var summary: some View {
         HStack(spacing: 0) {
             ZStack(alignment: .leading) {
                 if model.moment == .running {
-                    keys.transition(.opacity.combined(with: .offset(y: 3)))
+                    keys.transition(.opacity)
                 } else {
-                    launchValues.transition(.opacity.combined(with: .offset(y: -3)))
+                    HStack(spacing: 2) {
+                        launchValues
+                        KeyCap(key: "⌥↓", theme: theme)
+                            .padding(.leading, 4)
+                            .help("Change model, effort and permissions")
+                    }
+                    .transition(.opacity)
                 }
             }
-            .animation(.easeOut(duration: 0.18), value: model.moment == .running)
-            Spacer(minLength: 8)
+            .animation(.easeOut(duration: 0.12), value: model.moment == .running)
+            Spacer(minLength: 16)
             if let usage = model.usage {
                 UsageLine(usage: usage, theme: theme)
-                    .padding(.trailing, model.moment == .running ? 0 : 10)
                     .transition(.opacity)
-            }
-            if model.moment != .running {
-                HStack(spacing: 5) {
-                    Text("⌥↓").font(theme.label)
-                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
-                }
-                .foregroundStyle(theme.textMuted.opacity(0.7))
-                .help("Options (⌥↓)")
-                .transition(.opacity)
             }
         }
         .font(theme.chip)
@@ -104,14 +102,21 @@ struct OptionsSection: View {
         .frame(height: Self.foldedHeight)
         .contentShape(Rectangle())
         .onTapGesture { if model.moment != .running { model.openOptions() } }
-        .animation(.easeOut(duration: 0.18), value: model.moment == .running)
     }
 
-    /// over the running sessions nothing is launched: the keys that matter there instead
+    /// over the running sessions nothing is launched: what the keys do there, said plainly
     private var keys: some View {
-        HStack(spacing: 14) {
-            if !model.live.isEmpty { KeyHint(key: "↵", label: "Switch", theme: theme) }
-            KeyHint(key: "⌘↵", label: "New session", theme: theme)
+        let lit = model.selected != nil
+        return HStack(spacing: 16) {
+            if model.live.isEmpty {
+                KeyHint(key: "⌘↵", label: "New session in ~", theme: theme)
+            } else if lit {
+                KeyHint(key: "↵", label: "Go to session", theme: theme)
+                KeyHint(key: "⌘↵", label: "New session in its folder", theme: theme)
+            } else {
+                KeyHint(key: "↓", label: "Pick a session", theme: theme)
+                KeyHint(key: "⌘↵", label: "New session in ~", theme: theme)
+            }
         }
         .fixedSize()
         .padding(.leading, 8)
@@ -147,6 +152,22 @@ struct OptionsSection: View {
     }
 }
 
+/// a key in a small cap
+struct KeyCap: View {
+    let key: String
+    let theme: PaletteTheme
+
+    var body: some View {
+        Text(key)
+            .font(.system(size: 10.5, weight: .medium))
+            .foregroundStyle(theme.textSecondary)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 18, minHeight: 18)
+            .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+    }
+}
+
 /// a key in a small cap and what it does, quiet
 struct KeyHint: View {
     let key: String
@@ -155,13 +176,7 @@ struct KeyHint: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(key)
-                .font(.system(size: 10.5, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-                .padding(.horizontal, 5)
-                .frame(minWidth: 18, minHeight: 18)
-                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+            KeyCap(key: key, theme: theme)
             Text(theme.say(label))
                 .font(theme.label)
                 .foregroundStyle(theme.textMuted.opacity(0.85))
@@ -186,8 +201,8 @@ struct UsageLine: View {
     }
 
     var body: some View {
-        HStack(spacing: 14) {
-            if let session = usage.session { window("Session", session) }
+        HStack(spacing: 16) {
+            if let session = usage.session { window("5h", session) }
             if let week = usage.week { window("Week", week) }
         }
         .lineLimit(1)
@@ -198,14 +213,14 @@ struct UsageLine: View {
     /// a name, a short meter filling with the use, and the percentage
     private func window(_ name: String, _ w: Usage.Window) -> some View {
         let colour: Color = w.percent >= 95 ? Color(CC.error) : w.percent >= 80 ? Color(CC.warning) : Color.white.opacity(0.55)
-        return HStack(spacing: 6) {
+        return HStack(spacing: 5) {
             Text(theme.say(name)).foregroundStyle(theme.textMuted.opacity(0.8))
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.1))
-                Capsule().fill(colour).frame(width: max(3, 28 * min(w.percent, 100) / 100))
+                Capsule().fill(colour).frame(width: max(3, 22 * min(w.percent, 100) / 100))
             }
             .animation(.easeOut(duration: 0.4), value: w.percent)
-            .frame(width: 28, height: 4)
+            .frame(width: 22, height: 4)
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()
                 .foregroundStyle(w.percent >= 80 ? colour : theme.textSecondary)

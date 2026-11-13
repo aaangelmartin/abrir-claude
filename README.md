@@ -6,7 +6,7 @@ A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each momen
 2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
 3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes.
 
-While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so the same bar shows the keys that matter there (**↵** Switch, **⌘↵** New session) and the two crossfade as you start typing.
+While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so the same bar says what the keys do there, following what is highlighted (**↓** Pick a session, **↵** Go to session, **⌘↵** New session in its folder or in ~), and the two crossfade as you start typing. **⌥↓** sits right beside the launch values it opens.
 
 **esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
@@ -35,7 +35,7 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right: the session and the week, each as a small meter with its percentage and the time left until it resets. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right: the five-hour session (**5h**) and the **Week**, each as a small meter with its percentage and the time left until it resets. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
 The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
@@ -68,7 +68,7 @@ Keys in the options:
 
 There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
 
-The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. The palette comes in with a short fade, the highlight glides from row to row, a folder slides in from the right, the bottom bar crossfades between keys and options, and opening the options brings their rows in one after another.
+The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the palette fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
 
 The shortcut is set in `App.swift` (`openClaudeShortcut`) and applied again on every launch. While the app runs, ⌥C no longer types "©".
 
