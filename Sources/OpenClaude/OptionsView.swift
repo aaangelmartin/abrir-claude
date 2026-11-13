@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import LaaabsKit
 import SwiftUI
 
@@ -92,7 +93,7 @@ struct OptionsSection: View {
             .animation(.easeOut(duration: 0.12), value: model.moment == .running)
             // the left side gives way (truncates) rather than pushing the bar
             .layoutPriority(0)
-            Spacer(minLength: 16)
+            Spacer(minLength: 24)
             if let usage = model.usage {
                 UsageLine(usage: usage, theme: theme)
                     .layoutPriority(1)
@@ -107,17 +108,21 @@ struct OptionsSection: View {
         .onTapGesture { if model.moment != .running { model.openOptions() } }
     }
 
+    /// the palette's shortcut as typed on its key caps, ⌥C unless another was picked
+    static var shortcutText: String { KeyboardShortcuts.getShortcut(for: .openClaude)?.description ?? "⌥C" }
+
     /// over the running sessions nothing is launched: what the keys do there, said plainly
     private var keys: some View {
         // the same width whatever is lit, so nothing moves as the arrows go
         let lit = model.selected != nil
-        return HStack(spacing: 14) {
+        return HStack(spacing: 24) {
             if !model.live.isEmpty {
-                KeyHint(key: lit ? "↵" : "↓", label: lit ? "Open" : "Choose", theme: theme)
-                    .frame(width: 80, alignment: .leading)
+                KeyHint(keys: [lit ? "↵" : "↓"], label: lit ? "Open" : "Choose", theme: theme)
+                    .frame(width: 70, alignment: .leading)
                     .help(lit ? "Go to the session's window" : "Highlight a running session")
             }
-            KeyHint(key: "⌘↵", label: "New session", theme: theme)
+            // the shortcut itself starts a new session, as ⌘↵ does
+            KeyHint(keys: [Self.shortcutText, "⌘↵"], label: "New session", theme: theme)
                 .help(lit ? "Start a new session in that session's folder" : "Start a new session in your home folder")
         }
         .padding(.leading, 8)
@@ -169,16 +174,17 @@ struct KeyCap: View {
     }
 }
 
-/// a key in a small cap and what it does, quiet
+/// keys in small caps and what they do, quiet
 struct KeyHint: View {
-    let key: String
+    let keys: [String]
     let label: String
     let theme: PaletteTheme
 
     var body: some View {
-        HStack(spacing: 6) {
-            KeyCap(key: key, theme: theme)
+        HStack(spacing: 4) {
+            ForEach(keys, id: \.self) { KeyCap(key: $0, theme: theme) }
             Text(theme.say(label))
+                .padding(.leading, 3)
                 .font(theme.label)
                 .foregroundStyle(theme.textMuted.opacity(0.85))
         }
@@ -192,19 +198,20 @@ struct UsageLine: View {
     let usage: Usage
     let theme: PaletteTheme
 
-    /// the time until a window resets, short: "42m", "2h 14m", "3d 4h"
-    static func left(until date: Date, now: Date = Date()) -> String {
+    /// the time until a window resets, short: "42m", "2h 14m", "3d 4h". without minutes (the week,
+    /// where they matter little) hours stand alone: "10h"
+    static func left(until date: Date, now: Date = Date(), minutes: Bool = true) -> String {
         let s = max(0, Int(date.timeIntervalSince(now)))
         let d = s / 86_400, h = (s % 86_400) / 3600, m = (s % 3600) / 60
         if d > 0 { return h > 0 ? "\(d)d \(h)h" : "\(d)d" }
-        if h > 0 { return m > 0 ? "\(h)h \(m)m" : "\(h)h" }
+        if h > 0 { return m > 0 && minutes ? "\(h)h \(m)m" : "\(h)h" }
         return "\(max(m, 1))m"
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            if let session = usage.session { window("5h", session) }
-            if let week = usage.week { window("Week", week) }
+        HStack(spacing: 22) {
+            if let session = usage.session { window("5h", session, minutes: true) }
+            if let week = usage.week { window("Week", week, minutes: false) }
         }
         .lineLimit(1)
         .fixedSize()
@@ -212,20 +219,20 @@ struct UsageLine: View {
     }
 
     /// a name, a short meter filling with the use, and the percentage
-    private func window(_ name: String, _ w: Usage.Window) -> some View {
+    private func window(_ name: String, _ w: Usage.Window, minutes: Bool) -> some View {
         let colour: Color = w.percent >= 95 ? Color(CC.error) : w.percent >= 80 ? Color(CC.warning) : Color.white.opacity(0.55)
         return HStack(spacing: 5) {
             Text(theme.say(name)).foregroundStyle(theme.textMuted.opacity(0.8))
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.1))
-                Capsule().fill(colour).frame(width: max(4, 40 * min(w.percent, 100) / 100))
+                Capsule().fill(colour).frame(width: max(4, 34 * min(w.percent, 100) / 100))
             }
             .animation(.easeOut(duration: 0.4), value: w.percent)
-            .frame(width: 40, height: 5)
+            .frame(width: 34, height: 5)
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()
                 .foregroundStyle(w.percent >= 80 ? colour : theme.textSecondary)
-            if let left = w.resetsAt.map({ Self.left(until: $0) }) {
+            if let left = w.resetsAt.map({ Self.left(until: $0, minutes: minutes) }) {
                 Text(left).monospacedDigit().foregroundStyle(theme.textMuted.opacity(0.7))
             }
         }
