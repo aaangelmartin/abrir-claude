@@ -68,7 +68,7 @@ Keys in the options:
 
 There is no separate "default" value, and every time Open Claude opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
 
-The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the palette fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
+The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the window fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
 
 The shortcut is ⌥C unless another is picked in the setup; while the app runs, that key no longer types its character (⌥C types "©").
 
