@@ -1,6 +1,6 @@
 // swift-tools-version: 6.2
-// claude launcher: a hotkey (control option command c) opens a laaabs. palette that asks for a folder
-// and starts claude code there in a new terminal window.
+// claude launcher: one shortcut (option c by default) shows the claude code sessions running on this
+// mac, and starts or resumes one in any folder, in a new terminal window.
 import PackageDescription
 
 let package = Package(

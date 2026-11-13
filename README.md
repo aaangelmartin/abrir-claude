@@ -1,3 +1,13 @@
+<p align="center">
+  <img src="docs/banner.png" alt="Claude Launcher: your Claude Code sessions, one shortcut away" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/aaangelmartin/claude-launcher/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/aaangelmartin/claude-launcher?style=flat-square&color=D97757&label=release"></a>
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-2B2826?style=flat-square">
+  <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-2B2826?style=flat-square"></a>
+</p>
+
 # Claude Launcher
 
 One shortcut for Claude Code on your Mac. Press **⌥C** anywhere to see every Claude Code session running right now and what it needs from you, or type a folder to start a new session there or resume one of its past ones.
@@ -12,7 +22,13 @@ brew install --cask aaangelmartin/tap/claude-launcher
 
 Then open **Claude Launcher** from Applications. The first launch walks you through a short setup: it checks that Claude Code is installed, asks for permission to control Terminal, and lets you pick your shortcut.
 
-You need macOS 14 or later and [Claude Code](https://claude.com/claude-code) (the `claude` CLI). The [Claude app](https://claude.ai/download) is optional: when it is installed, Claude Launcher uses its fonts.
+### Requirements
+
+| | |
+|---|---|
+| **macOS 14** or later | Apple silicon or Intel |
+| **[Claude Code](https://claude.com/claude-code)** | the `claude` CLI, signed in |
+| **[Claude app](https://claude.ai/download)** | needed for the look: Claude Launcher uses Anthropic Sans and Anthropic Serif from it. Without it, the system fonts are used |
 
 ## How it works
 
@@ -99,7 +115,7 @@ cd claude-launcher
 swift test                  # the tests
 ```
 
-`scripts/release.sh` builds the notarized zip that the Homebrew cask installs.
+`scripts/release.sh` builds the notarized zip that the Homebrew cask installs, and `DOCS_DIR=docs swift test --filter DocsImages` redraws this readme's images from the app's own views. Changes are listed in the [changelog](CHANGELOG.md).
 
 ## Uninstall
 
@@ -109,6 +125,22 @@ brew uninstall --cask claude-launcher
 
 Remove it from System Settings → General → Login Items if it is still listed.
 
----
+## Legal
 
-Made by [aaangelmartin](https://aaangelmartin.com). Not affiliated with Anthropic; Claude and Claude Code are trademarks of Anthropic.
+Claude Launcher is an independent project. It is **not made, endorsed or supported by Anthropic**. "Claude", "Claude Code" and "Anthropic" are trademarks of Anthropic, PBC, used here only to say what this app works with.
+
+- **Fonts**: Anthropic Sans and Anthropic Serif are Anthropic's typefaces. They are not in this repository or in the app; Claude Launcher loads them from your installed [Claude app](https://claude.ai/download) while it runs.
+- **The Claude mark** in the window and the icon is Anthropic's, and remains theirs.
+- **The aaangelmartin wordmark** belongs to Ángel Martín and is not licensed for reuse.
+
+The code is released under the [Apache License 2.0](LICENSE); see [NOTICE](NOTICE) for the third-party material it does not cover.
+
+<p align="center">
+  <br>
+  <a href="https://aaangelmartin.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="Resources/aaangelmartin.svg">
+      <img src="docs/aaangelmartin-dark.svg" alt="aaangelmartin" height="18">
+    </picture>
+  </a>
+</p>

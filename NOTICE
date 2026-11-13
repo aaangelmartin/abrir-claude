@@ -1,0 +1,20 @@
+Claude Launcher
+Copyright 2026 Ángel Martín
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Claude Launcher is an independent project. It is not made, endorsed or supported by Anthropic,
+PBC. "Claude", "Claude Code" and "Anthropic" are trademarks of Anthropic, PBC, used here only to
+say what this app works with.
+
+Third-party material, not covered by this project's license:
+
+- Anthropic Sans and Anthropic Serif are Anthropic's typefaces. They are not included in this
+  repository or in the app: when the Claude app is installed (/Applications/Claude.app), Claude
+  Launcher loads them from it at runtime, for the running process only. Without the Claude app the
+  system fonts are used.
+- The Claude mark (Resources/claude.svg) is Anthropic's, used to identify the Claude Code
+  sessions this app opens. It remains Anthropic's property.
+- The aaangelmartin wordmark (Resources/aaangelmartin.svg) belongs to Ángel Martín and is not
+  licensed for reuse.
+- KeyboardShortcuts by Sindre Sorhus, MIT License, https://github.com/sindresorhus/KeyboardShortcuts
