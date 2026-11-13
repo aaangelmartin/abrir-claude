@@ -66,69 +66,7 @@ import Testing
     }
 }
 
-@MainActor
-@Suite struct ModeTests {
-    @Test func opensOnRunningAndTabWalksTheTabs() {
-        let m = PaletteModel()
-        m.reset()
-        #expect(m.mode == .running)
-        _ = m.handle(.tab)
-        #expect(m.mode == .resume)
-        _ = m.handle(.tab)
-        #expect(m.mode == .new)
-        _ = m.handle(.backTab)
-        #expect(m.mode == .resume)
-        _ = m.handle(.tabNumber(1))
-        #expect(m.mode == .running)
-    }
 
-    @Test func theShortcutAgainGoesToNewThenStarts() {
-        let m = PaletteModel()
-        var opened = false
-        m.onOpen = { _, _ in opened = true }
-        m.reset()
-        m.hotkeyAgain()
-        #expect(m.mode == .new)
-        #expect(!opened)
-        m.hotkeyAgain()
-        #expect(opened)
-    }
-
-    @Test func resumeListsPastSessionsWithNothingTyped() {
-        let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "s1", title: "One", updated: Date())])]
-        m.live = []
-        m.switchMode(to: .resume)
-        #expect(m.count == 1)
-    }
-
-    @Test func enterOnAFolderStartsANewSessionThere() {
-        let m = PaletteModel()
-        m.switchMode(to: .new)
-        var opened: (String, [String])?
-        m.onOpen = { opened = ($0, $1) }
-        m.text = "Developer"
-        _ = m.handle(.enter)
-        #expect(opened?.0 == "Developer")
-        #expect(opened?.1 == [])
-    }
-
-    @Test func sessionsListEveryRunningOne() {
-        let m = PaletteModel()
-        m.live = (0..<9).map { LiveSession(pid: Int32($0 + 1), sessionId: "\($0)", cwd: "/tmp", name: "s\($0)", state: .idle, waitingFor: nil, since: Date()) }
-        #expect(m.shownLive.count == 9)
-    }
-}
-
-@MainActor
-@Suite struct SelectionTests {
-    @Test func typingLightsNothing() {
-        let m = PaletteModel()
-        m.text = "Dev"
-        #expect(m.selected == nil)
-    }
-}
 
 @Suite struct LaunchOptionsTests {
     @Test func defaultsAddNothing() {
@@ -196,27 +134,6 @@ import Testing
     }
 }
 
-@MainActor
-@Suite struct KeyTests {
-    @Test func upAtTheTopStaysThere() {
-        let m = PaletteModel()
-        m.switchMode(to: .new)
-        m.text = "Dev"
-        guard !m.rows.isEmpty else { return }
-        m.selected = nil
-        _ = m.handle(.up)
-        #expect(m.selected == nil)
-    }
-
-    @Test func tabWithNothingLitGoesToTheNextTab() {
-        let m = PaletteModel()
-        m.switchMode(to: .new)
-        m.text = "Dev"
-        m.selected = nil
-        _ = m.handle(.tab)
-        #expect(m.mode == .running)
-    }
-}
 
 @MainActor
 @Suite struct MarkedDefaultTests {
@@ -294,30 +211,84 @@ import Testing
     }
 }
 
+
 @MainActor
-@Suite struct ActiveNavigationTests {
-    @Test func downAndUpThroughRunningSessions() {
+@Suite struct FlowTests {
+    private func model(sessions: [SessionInfo] = [], live: [LiveSession] = []) -> PaletteModel {
         let m = PaletteModel()
-        m.live = [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())]
+        let home = FolderPath.home
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: sessions)]
+        m.live = live
+        return m
+    }
+
+    @Test func enterWithNothingLitStartsANewSessionInTheLastFolder() {
+        let m = model()
+        var opened: (String, [String])?
+        m.onOpen = { opened = ($0, $1) }
+        _ = m.handle(.enter)
+        #expect(opened?.0 == "Developer")
+        #expect(opened?.1 == [])
+    }
+
+    @Test func runningComeBeforePastAndEnterGoesOrResumes() {
+        let running = LiveSession(pid: 1, sessionId: "r", cwd: FolderPath.home + "/Developer", name: "live one", state: .busy, waitingFor: nil, since: Date())
+        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())], live: [running])
+        #expect(m.items.count == 2)
+        var focused: LiveSession?
+        var opened: [String]?
+        m.onFocus = { focused = $0 }
+        m.onOpen = { _, a in opened = a }
+        _ = m.handle(.down) // new session
+        _ = m.handle(.down) // running
+        _ = m.handle(.enter)
+        #expect(focused?.sessionId == "r")
+        _ = m.handle(.down) // past
+        _ = m.handle(.enter)
+        #expect(opened == ["--resume", "p"])
+    }
+
+    @Test func typingFiltersSessionsByTitleOrFolder() {
+        let m = model(sessions: [SessionInfo(id: "a", title: "Fix the effort slider", updated: Date()), SessionInfo(id: "b", title: "Other", updated: Date())])
+        m.text = "effort"
+        #expect(m.items.count == 1)
+        m.text = "developer"
+        #expect(m.items.count == 2)
+    }
+
+    @Test func rightOnNewSessionPicksAFolder() {
+        let m = model()
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
         _ = m.handle(.down)
-        #expect(m.selected == 0)
+        _ = m.handle(.right)
+        #expect(m.pickingFolder)
+        m.text = "Desktop"
+        _ = m.handle(.enter)
+        #expect(!m.pickingFolder)
+        #expect(m.newFolder == "Desktop")
+        _ = m.handle(.enter)
+        #expect(opened == "Desktop")
+    }
+
+    @Test func upAtTheTopStaysThere() {
+        let m = model()
         _ = m.handle(.up)
         #expect(m.selected == nil)
     }
 
-    @Test func typingFindsPastSessionsByTitleAndEnterResumes() {
-        let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "s1", title: "Fix the effort slider", updated: Date())])]
-        m.live = []
-        var got: (String, [String])?
-        m.onOpen = { got = ($0, $1) }
-        m.switchMode(to: .resume)
-        m.text = "effort slider"
-        #expect(m.pastShown.count == 1)
-        _ = m.handle(.down)
-        _ = m.handle(.enter)
-        #expect(got?.0 == "Developer")
-        #expect(got?.1 == ["--resume", "s1"])
+    @Test func escapeBacksOutOneStepAtATime() {
+        let m = model()
+        var closed = false
+        m.onClose = { closed = true }
+        m.pickFolder()
+        _ = m.handle(.escape)
+        #expect(!m.pickingFolder)
+        m.text = "x"
+        _ = m.handle(.escape)
+        #expect(m.text.isEmpty)
+        #expect(!closed)
+        _ = m.handle(.escape)
+        #expect(closed)
     }
 }

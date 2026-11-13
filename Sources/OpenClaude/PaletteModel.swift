@@ -1,15 +1,13 @@
 import AppKit
 import Combine
 
-/// the palette's state. three tabs, each doing one thing:
-/// - running (where it opens): the claude code sessions running now. enter goes to one.
-/// - resume: past sessions, newest first. enter resumes one in its folder.
-/// - new: folders, with the launch options below. enter starts claude there.
-/// tab and ⇧tab walk the tabs, ⌘1 ⌘2 ⌘3 jump to one, the shortcut again goes to new.
+/// the palette's state: one field and one list, as claude's own session list works. the first line
+/// is always "new session", in a folder shown beside it; under it, your sessions, the running ones
+/// first with their state, then the past ones. enter on a session goes to it (running) or resumes it
+/// (past); enter with nothing lit, or on the first line, starts a new session. → on the first line
+/// picks another folder for it.
 @MainActor
 final class PaletteModel: ObservableObject {
-    enum Mode: Int, CaseIterable { case running, resume, new }
-
     enum Notice: Equatable {
         /// macOS said no to controlling terminal
         case notAllowed
@@ -22,19 +20,25 @@ final class PaletteModel: ObservableObject {
         case up, down, left, right, enter, tab, escape, space
         case jumpDown, jumpUp // ⌘↓ ⌘↑
         case optionsDown, optionsUp // ⌥↓ ⌥↑: open and fold the options
-        case openNew // ⌘↵: a new session straight away
-        case newMode // ⌘N: the new tab
-        case backTab // ⇧tab: the tab before
-        case tabNumber(Int) // ⌘1 ⌘2 ⌘3
+        case openNew // ⌘↵: a new session (in the lit session's folder)
     }
 
-    @Published private(set) var mode: Mode = .running
+    /// one line of the list
+    enum Item: Equatable {
+        case running(LiveSession)
+        case past(folder: String, session: SessionInfo)
+    }
+
     @Published var text = "" { didSet { if text != oldValue { textChanged() } } }
-    /// the folders listed in the new session mode
+    /// true while the folder for the new session is being picked (the list shows folders then)
+    @Published private(set) var pickingFolder = false
+    /// the folder picked for the new session, nil to follow what is typed (or the last one used)
+    @Published private(set) var pickedFolder: String?
+    /// the folders listed while picking one
     @Published private(set) var rows: [String] = []
     @Published private(set) var showingRecents = false
-    /// the lit line of the list shown (sessions: running ones then past ones; new: folders), nil on
-    /// the field
+    /// the lit line, nil on the field. in the list, 0 is "new session" and 1... the sessions; while
+    /// picking a folder, the folder rows from 0
     @Published var selected: Int?
     /// true when the pointer, not the keys, picked the row: the list then stays where it is
     private(set) var selectedByPointer = false
@@ -48,7 +52,7 @@ final class PaletteModel: ObservableObject {
     /// the plan's session and weekly use, when claude code's sign-in can be read
     @Published var usage: Usage?
     private var usageFetchedAt: Date?
-    /// the option the arrows are on (the options are open while it is set), nil on the field and folders
+    /// the option the arrows are on (the options are open while it is set), nil on the field and list
     @Published private(set) var optionRow: Int?
     /// which way the last change went (-1 back, 1 forward), so a carousel slides the right way
     private(set) var lastDelta = 1
@@ -80,7 +84,6 @@ final class PaletteModel: ObservableObject {
     }
 
     func reset() {
-        mode = .running
         refreshLive()
         refreshModelVersions()
         refreshProjects()
@@ -88,15 +91,10 @@ final class PaletteModel: ObservableObject {
         picks = LaunchOptions.all.map { _ in 0 }
         notice = nil
         optionRow = nil
+        pickingFolder = false
+        pickedFolder = nil
         text = ""
         refreshRows()
-    }
-
-    /// to a tab (or the next one); the field starts empty in each
-    func switchMode(to new: Mode? = nil) {
-        mode = new ?? Mode(rawValue: (mode.rawValue + 1) % Mode.allCases.count)!
-        optionRow = nil
-        if text.isEmpty { refreshRows() } else { text = "" }
     }
 
     private func textChanged() {
@@ -107,105 +105,126 @@ final class PaletteModel: ObservableObject {
 
     func refreshRows() {
         listID = UUID()
+        selectedByPointer = false
+        // nothing is lit until an arrow or the pointer lights it
+        selected = nil
+        guard pickingFolder else { rows = []; showingRecents = false; return }
         let typed = text.trimmingCharacters(in: .whitespaces)
         if typed.isEmpty {
             rows = recentRows()
             showingRecents = !rows.isEmpty
-        } else if typed.contains("/") || typed.hasPrefix("~") {
-            // a path being typed: its subfolders, as a shell completes them
+        } else if isPath(typed) {
             rows = Suggestions.completions(for: text)
             showingRecents = false
         } else {
             rows = fuzzyRows(typed)
             showingRecents = false
         }
-        selectedByPointer = false
-        // nothing is lit until an arrow or the pointer lights it
-        selected = nil
     }
 
-    // MARK: sessions mode
+    private func isPath(_ typed: String) -> Bool { typed.contains("/") || typed.hasPrefix("~") }
 
-    /// every running session, or the ones whose name or folder matches what is typed
-    var shownLive: [LiveSession] {
-        let typed = text.trimmingCharacters(in: .whitespaces)
-        guard !typed.isEmpty else { return live }
-        return live
-            .compactMap { s -> (LiveSession, Int)? in
-                let a = Fuzzy.score(typed, s.name), b = Fuzzy.score(typed, FolderPath.display(s.cwd))
-                guard let best = [a, b].compactMap({ $0 }).max() else { return nil }
-                return (s, best)
-            }
-            .sorted { $0.1 > $1.1 }
-            .map(\.0)
-    }
+    // MARK: the list
 
-    /// past sessions, newest first, without the ones running now; while something is typed, those
-    /// whose title has every word typed or whose folder matches
-    var pastShown: [(folder: String, session: SessionInfo)] {
+    /// the sessions listed: the running ones (those needing you first), then the past ones, newest
+    /// first. typing keeps the running ones whose name or folder matches and the past ones whose title
+    /// has every word typed or whose folder matches.
+    var items: [Item] {
         let typed = text.trimmingCharacters(in: .whitespaces)
         let words = typed.lowercased().split(separator: " ").map(String.init)
-        let running = Set(live.map(\.sessionId))
-        return projects.values
+        func matches(_ title: String, _ folder: String) -> Bool {
+            guard !words.isEmpty else { return true }
+            let t = title.lowercased(), f = folder.lowercased()
+            return words.allSatisfy { t.contains($0) || f.contains($0) }
+        }
+        let running = live.filter { matches($0.name, FolderPath.display($0.cwd)) }
+        let ids = Set(live.map(\.sessionId))
+        let past = projects.values
             .flatMap { p in p.sessions.map { (FolderPath.display(p.path), $0) } }
-            .filter { folder, s in
-                guard !running.contains(s.id) else { return false }
-                guard !typed.isEmpty else { return true }
-                let title = s.title.lowercased()
-                return words.allSatisfy { title.contains($0) } || Fuzzy.score(typed, folder) != nil && folder.lowercased().contains(words[0])
-            }
+            .filter { !ids.contains($0.1.id) && matches($0.1.title, $0.0) }
             .sorted { $0.1.updated > $1.1.updated }
-            .prefix(200)
-            .map { (folder: $0.0, session: $0.1) }
+            .prefix(typed.isEmpty ? 30 : 100)
+        return running.map(Item.running) + past.map { Item.past(folder: $0.0, session: $0.1) }
     }
+
+    /// where "new session" starts: the folder picked, or what is typed when it is a path, or the
+    /// folder that best matches a name typed, or the folder used last (home when there is none)
+    var newFolder: String {
+        if let pickedFolder { return pickedFolder }
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        if isPath(typed), FolderPath.isDirectory(FolderPath.resolve(typed)) { return typed }
+        if !typed.isEmpty, !isPath(typed), let best = fuzzyRows(typed).first { return best }
+        return recentRows().first ?? ""
+    }
+
+    /// how many lines can be lit: the folders while picking; "new session" and the sessions otherwise
+    var count: Int { pickingFolder ? rows.count : 1 + items.count }
 
     func refreshLive() {
         let now = LiveSessions.all()
         if now != live { live = now }
-        if mode == .running, let i = selected, i >= count { selected = count == 0 ? nil : count - 1 }
+        if let i = selected, i >= count { selected = count - 1 }
     }
 
-    /// how many lines the current tab lists
-    var count: Int {
-        switch mode {
-        case .running: shownLive.count
-        case .resume: pastShown.count
-        case .new: rows.count
-        }
-    }
-
-    /// enter on a line: go to the running session, or resume the past one in its folder
+    /// enter on a line of the list
     func act(on index: Int) {
-        switch mode {
-        case .running:
-            let running = shownLive
-            if running.indices.contains(index) { onFocus(running[index]) }
-        case .resume:
-            let past = pastShown
-            guard past.indices.contains(index) else { return }
-            onOpen(past[index].folder, LaunchOptions.args(for: picks) + ["--resume", past[index].session.id])
-        case .new:
-            open(row: rows[index])
+        if index == 0 { startNew(in: newFolder); return }
+        let list = items
+        guard list.indices.contains(index - 1) else { return }
+        switch list[index - 1] {
+        case let .running(s): onFocus(s)
+        case let .past(folder, s): onOpen(folder, LaunchOptions.args(for: picks) + ["--resume", s.id])
         }
     }
 
-    /// the folder of a line, for ⌘↵ (a new session there)
-    private func folder(of index: Int) -> String? {
-        switch mode {
-        case .running:
-            let running = shownLive
-            return running.indices.contains(index) ? FolderPath.display(running[index].cwd) : nil
-        case .resume:
-            let past = pastShown
-            return past.indices.contains(index) ? past[index].folder : nil
-        case .new:
-            return rows.indices.contains(index) ? rows[index] : nil
-        }
+    private func startNew(in folder: String) {
+        onOpen(folder, LaunchOptions.args(for: picks))
     }
 
-    /// the shortcut pressed with the palette open: to the new tab, and from there a new session now
-    func hotkeyAgain() {
-        if mode == .new { openNew() } else { switchMode(to: .new) }
+    /// ⌘↵: a new session in the lit session's folder, or where "new session" points
+    func openNew() {
+        if pickingFolder { choose(selected.flatMap { rows.indices.contains($0) ? rows[$0] : nil } ?? text); return }
+        if let i = selected, i > 0, items.indices.contains(i - 1) {
+            switch items[i - 1] {
+            case let .running(s): startNew(in: FolderPath.display(s.cwd))
+            case let .past(folder, _): startNew(in: folder)
+            }
+            return
+        }
+        startNew(in: newFolder)
+    }
+
+    /// the shortcut pressed with the palette open: start the new session
+    func hotkeyAgain() { openNew() }
+
+    // MARK: picking the folder
+
+    func pickFolder() {
+        pickingFolder = true
+        optionRow = nil
+        if text.isEmpty { refreshRows() } else { text = "" }
+    }
+
+    /// a folder chosen for the new session: back to the list, "new session" lit and pointing there
+    func choose(_ row: String) {
+        let folder = row.trimmingCharacters(in: .whitespaces)
+        guard folder.isEmpty || FolderPath.isDirectory(FolderPath.resolve(folder)) else { NSSound.beep(); return }
+        pickedFolder = folder
+        pickingFolder = false
+        text = ""
+        refreshRows()
+        selected = 0
+    }
+
+    func cancelPick() {
+        pickingFolder = false
+        if text.isEmpty { refreshRows() } else { text = "" }
+    }
+
+    /// what enter would open now while picking
+    var target: String {
+        if let selected, rows.indices.contains(selected) { return rows[selected] }
+        return text
     }
 
     // MARK: projects
@@ -231,7 +250,7 @@ final class PaletteModel: ObservableObject {
         projects[ProjectIndex.trimmed(FolderPath.resolve(row))]
     }
 
-    /// with nothing typed: the folders used last, here or in claude, newest first
+    /// the folders used last, here or in claude, newest first
     private func recentRows() -> [String] {
         let known = projects.values
             .filter { $0.lastUsed != nil }
@@ -259,12 +278,6 @@ final class PaletteModel: ObservableObject {
             .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0.localizedStandardCompare($1.0) == .orderedAscending }
             .prefix(60)
             .map(\.0)
-    }
-
-    /// what enter would open now in the new session mode
-    var target: String {
-        if let selected, rows.indices.contains(selected) { return rows[selected] }
-        return text
     }
 
     /// the pointer moved onto a line
@@ -368,13 +381,7 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
-        switch key {
-        case .newMode: switchMode(to: .new); return true
-        case .backTab: switchMode(to: Mode(rawValue: (mode.rawValue + Mode.allCases.count - 1) % Mode.allCases.count)); return true
-        case let .tabNumber(n): if let m = Mode(rawValue: n - 1) { switchMode(to: m) }; return true
-        default: break
-        }
-        if mode == .new, key == .optionsDown { optionRow = optionRow ?? 0; return true }
+        if key == .optionsDown { optionRow = optionRow ?? 0; return true }
         if key == .optionsUp { optionRow = nil; return true }
         if let optionRow { return handleOptions(key, optionRow) }
         switch key {
@@ -391,15 +398,18 @@ final class PaletteModel: ObservableObject {
         case .jumpDown: if count > 0 { selectedByPointer = false; selected = count - 1 }
         case .jumpUp: selected = nil
         case .escape:
-            // typing is cleared first, then the palette closes
-            if text.isEmpty { close() } else { text = "" }
+            // back out one step at a time: the folder picker, what is typed, then the palette
+            if pickingFolder { cancelPick() } else if !text.isEmpty { text = "" } else { close() }
         case .enter: submit()
         case .openNew: openNew()
         case .tab:
-            // the next tab; in new, with a folder lit, tab completes it instead
-            if mode == .new, selected != nil { complete() } else { switchMode() }
-        case .left, .right, .space: return false // the caret and spaces belong to the field
-        case .optionsDown, .optionsUp, .newMode, .backTab, .tabNumber: break
+            if pickingFolder { complete() } else if selected == nil || selected == 0 { pickFolder() }
+        case .right:
+            // → on "new session" picks its folder; elsewhere the caret moves
+            guard !pickingFolder, selected == 0 else { return false }
+            pickFolder()
+        case .left, .space: return false // the caret and spaces belong to the field
+        case .optionsDown, .optionsUp: break
         }
         return true
     }
@@ -415,40 +425,25 @@ final class PaletteModel: ObservableObject {
         case .jumpDown: optionRow = last
         case .left: step(row, by: -1)
         case .right: step(row, by: 1)
-        case .enter, .openNew: openNew()
-        case .space, .optionsDown, .optionsUp, .newMode, .backTab, .tabNumber: break
+        case .enter, .openNew: submit()
+        case .space, .optionsDown, .optionsUp: break
         }
         return true
     }
 
-    /// tab in the new session mode: the lit folder goes into the field and its subfolders are listed
+    /// tab while picking a folder: the lit folder goes into the field and its subfolders are listed
     func complete() {
-        guard mode == .new, let selected, rows.indices.contains(selected) else { return }
+        guard pickingFolder, let selected, rows.indices.contains(selected) else { return }
         text = rows[selected]
     }
 
-    /// enter. sessions: go to the lit running session or resume the lit past one. new session:
-    /// start claude in the lit folder, or in what is typed (home when nothing is)
+    /// enter: while picking, choose the lit folder (or what is typed); in the list, act on the lit
+    /// line, and with nothing lit start the new session
     func submit() {
-        if mode == .new { openNew(); return }
-        guard let selected else { NSSound.beep(); return }
-        act(on: selected)
+        if pickingFolder { choose(target); return }
+        act(on: selected ?? 0)
     }
 
-    /// ⌘↵, or the shortcut again: a new session now, in the lit line's folder, what is typed, or home
-    func openNew() {
-        if mode != .new {
-            onOpen(selected.flatMap(folder(of:)) ?? "", LaunchOptions.args(for: picks))
-            return
-        }
-        guard targetIsOpenable else { NSSound.beep(); return }
-        onOpen(target, LaunchOptions.args(for: picks))
-    }
-
-    private var targetIsOpenable: Bool {
-        let typed = text.trimmingCharacters(in: .whitespaces)
-        return selected != nil || typed.isEmpty || FolderPath.isDirectory(FolderPath.resolve(typed))
-    }
-    func open(row: String) { onOpen(row, LaunchOptions.args(for: picks)) }
+    func open(row: String) { choose(row) }
     func close() { onClose() }
 }
