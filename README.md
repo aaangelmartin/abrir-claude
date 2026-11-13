@@ -1,49 +1,41 @@
 # open claude
 
-A global shortcut (⌥C) opens one field and one list, the way Claude's own session list works:
+A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each moment has one purpose:
 
-```
-  +  New session                       in Developer/open-claude ›
-  Sessions
-  ✋ Brain & Ranking        Desktop/laaabs          Needs input
-  ◠  open-claude-a1        Developer/open-claude   Working
-  ↺  Fix the effort slider Developer/open-claude   4h ago
-```
+1. **Opened**: every Claude Code session running now, with its state. **↵** goes to it.
+2. **Typing**: folders, to start or resume a session in. **↵** opens the folder.
+3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes; model, effort and permissions sit below.
 
-- **New session** is always the first line, with the folder it starts in beside it: the folder you used last, or the one that best matches what you type (a name, fuzzily, or a path). **→** on it, or a click on the folder, picks another.
-- Under it, **your sessions**: the ones running now first, with their state, then past ones, newest first. Typing narrows them by title or folder.
-- **↵** on a running session brings its Terminal tab forward; on a past one it resumes it in its folder (`claude --resume <id>`); on New session, or with nothing highlighted, it starts the new session.
-- **⌘↵** starts a new session in the highlighted session's folder. **⌥C** again starts the new session.
-- Model, effort and permissions sit at the bottom, with the plan's use; **⌥↓** opens them.
-- **esc** backs out one step: the folder picker, then what is typed, then the palette.
+**esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌘↵** starts a new session at once, in the highlighted folder or session's folder. **⌥C** pressed again acts as **↵**.
 
-## Sessions
+## Running sessions
 
-Running sessions are read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over). What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
+Read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
 
-Past sessions come from `~/.claude/projects`, by their title (the session's own, else its first message). Only the start and end of each file are read, so even very long sessions list at once.
-
-## Picking the folder
+## Folders
 
 | You type | It lists |
 |---|---|
-| nothing | the folders used last, here or in Claude Code itself |
-| a name, like `ocl` | folders matching it fuzzily: home's own folders, every folder Claude has run in, the ones opened from here and the git repos under `~/Developer` |
+| a name, like `ocl` | folders matching it fuzzily: your home folder's own folders, every folder Claude has run in, the ones opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead |
 | `projects/my-app`, `~/projects/my-app` or `/Volumes/disk/work` | that path's subfolders, completed with **Tab** |
 
-Each known folder shows its git branch and when it was last used. **↵** chooses it and goes back to the list with New session pointing there.
+Each known folder shows its git branch, when it was last used and how many Claude sessions it has, in columns that line up. **↵** (or **→** with the caret at the end) opens the highlighted folder, or what is typed when it is a folder.
+
+## A folder
+
+Past sessions come from `~/.claude/projects`, by their title (the session's own, else its first message); a past one resumes with `claude --resume <id>`. Only the start and end of each session file are read, so even very long sessions list at once.
 
 ## Keys
 
-- **↑ ↓** move through the list; nothing is highlighted until you do, and **↑** at the top stays there.
+- **↑ ↓** move through the list; nothing is highlighted until you do (except New session in a folder), and **↑** at the top stays there.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
 - **⌘W** or a click outside close the palette; **⌘Q** quits the app (it starts again at login or from Applications).
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right (beside the options in a folder). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
+In a folder, the line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|

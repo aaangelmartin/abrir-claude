@@ -222,73 +222,70 @@ import Testing
         return m
     }
 
-    @Test func enterWithNothingLitStartsANewSessionInTheLastFolder() {
+    @Test func opensOnEveryRunningSession() {
+        let live = (0..<9).map { LiveSession(pid: Int32($0 + 1), sessionId: "\($0)", cwd: "/tmp", name: "s\($0)", state: .idle, waitingFor: nil, since: Date()) }
+        let m = model(live: live)
+        #expect(m.moment == .running)
+        #expect(m.count == 9)
+        var focused: LiveSession?
+        m.onFocus = { focused = $0 }
+        _ = m.handle(.down)
+        _ = m.handle(.enter)
+        #expect(focused?.sessionId == "0")
+    }
+
+    @Test func typingListsFoldersAndEnterOpensTheStepWithNewLit() {
+        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())])
+        m.text = "Developer"
+        #expect(m.moment == .folders)
+        _ = m.handle(.enter)
+        #expect(m.moment == .step)
+        #expect(m.selected == 0)
+        #expect(m.stepItems.count == 2)
+        #expect(m.stepItems.first == .new)
+    }
+
+    @Test func enterTwiceStartsANewSession() {
         let m = model()
         var opened: (String, [String])?
         m.onOpen = { opened = ($0, $1) }
+        m.text = "Developer"
+        _ = m.handle(.enter)
         _ = m.handle(.enter)
         #expect(opened?.0 == "Developer")
         #expect(opened?.1 == [])
     }
 
-    @Test func runningComeBeforePastAndEnterGoesOrResumes() {
-        let running = LiveSession(pid: 1, sessionId: "r", cwd: FolderPath.home + "/Developer", name: "live one", state: .busy, waitingFor: nil, since: Date())
-        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())], live: [running])
-        #expect(m.items.count == 2)
-        var focused: LiveSession?
+    @Test func aPastSessionResumes() {
+        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())])
         var opened: [String]?
-        m.onFocus = { focused = $0 }
         m.onOpen = { _, a in opened = a }
-        _ = m.handle(.down) // new session
-        _ = m.handle(.down) // running
+        m.text = "Developer"
         _ = m.handle(.enter)
-        #expect(focused?.sessionId == "r")
-        _ = m.handle(.down) // past
+        _ = m.handle(.down)
         _ = m.handle(.enter)
         #expect(opened == ["--resume", "p"])
-    }
-
-    @Test func typingFiltersSessionsByTitleOrFolder() {
-        let m = model(sessions: [SessionInfo(id: "a", title: "Fix the effort slider", updated: Date()), SessionInfo(id: "b", title: "Other", updated: Date())])
-        m.text = "effort"
-        #expect(m.items.count == 1)
-        m.text = "developer"
-        #expect(m.items.count == 2)
-    }
-
-    @Test func rightOnNewSessionPicksAFolder() {
-        let m = model()
-        var opened: String?
-        m.onOpen = { raw, _ in opened = raw }
-        _ = m.handle(.down)
-        _ = m.handle(.right)
-        #expect(m.pickingFolder)
-        m.text = "Desktop"
-        _ = m.handle(.enter)
-        #expect(!m.pickingFolder)
-        #expect(m.newFolder == "Desktop")
-        _ = m.handle(.enter)
-        #expect(opened == "Desktop")
-    }
-
-    @Test func upAtTheTopStaysThere() {
-        let m = model()
-        _ = m.handle(.up)
-        #expect(m.selected == nil)
     }
 
     @Test func escapeBacksOutOneStepAtATime() {
         let m = model()
         var closed = false
         m.onClose = { closed = true }
-        m.pickFolder()
+        m.text = "Developer"
+        _ = m.handle(.enter)
         _ = m.handle(.escape)
-        #expect(!m.pickingFolder)
-        m.text = "x"
+        #expect(m.moment == .folders)
         _ = m.handle(.escape)
         #expect(m.text.isEmpty)
         #expect(!closed)
         _ = m.handle(.escape)
         #expect(closed)
+    }
+
+    @Test func upAtTheTopStaysThere() {
+        let m = model()
+        m.text = "Dev"
+        _ = m.handle(.up)
+        #expect(m.selected == nil)
     }
 }
