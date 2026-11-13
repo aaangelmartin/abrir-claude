@@ -1,7 +1,7 @@
 import Foundation
 
 /// the number of the newest model of each family ("opus" → "5.5") and the effort that model starts
-/// with ("effort.opus" → "medium"), read from the installed `claude` itself, so the palette shows what
+/// with ("effort.opus" → "medium"), read from the installed `claude` itself, so the window shows what
 /// `--model opus` runs today and follows every claude update without a change here. the result is kept per claude binary (its path names its version), so the binary is
 /// read again only after claude updates.
 enum ModelVersions {

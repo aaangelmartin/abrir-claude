@@ -23,7 +23,7 @@ struct Usage: Equatable, Sendable {
         var request = URLRequest(url: endpoint, timeoutInterval: 8)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
-        request.setValue("open-claude", forHTTPHeaderField: "User-Agent")
+        request.setValue("claude-launcher", forHTTPHeaderField: "User-Agent")
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return parse(data)

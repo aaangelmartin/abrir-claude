@@ -1,4 +1,4 @@
-@testable import OpenClaude
+@testable import ClaudeLauncher
 import Foundation
 import Testing
 
@@ -38,7 +38,7 @@ import Testing
 
 @Suite struct SuggestionsTests {
     let root: String = {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("open-claude-tests-\(UUID().uuidString)")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("claude-launcher-tests-\(UUID().uuidString)")
         for sub in ["proyectos/alfa", "proyectos/Beta", "proyectos/.oculta", "Documentos"] {
             try! FileManager.default.createDirectory(at: dir.appendingPathComponent(sub), withIntermediateDirectories: true)
         }
@@ -66,54 +66,7 @@ import Testing
     }
 }
 
-@MainActor
-@Suite struct EnterTests {
-    @Test func enterOnAFolderWithSessionsListsThem() {
-        let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
-        var opened: String?
-        m.onOpen = { raw, _ in opened = raw }
-        m.text = "Developer"
-        _ = m.handle(.enter)
-        #expect(m.sessionsFolder == "Developer")
-        #expect(opened == nil)
-        _ = m.handle(.down)
-        _ = m.handle(.enter)
-        #expect(opened == "Developer")
-    }
 
-    @Test func enterOnAFolderWithoutSessionsStillAsks() {
-        let m = PaletteModel()
-        var opened = false
-        m.onOpen = { _, _ in opened = true }
-        m.text = "Developer"
-        m.projects = [:]
-        _ = m.handle(.enter)
-        #expect(m.sessionsFolder == "Developer")
-        #expect(!opened)
-    }
-
-    @Test func commandEnterOpensANewSessionAtOnce() {
-        let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
-        var args: [String]?
-        m.onOpen = { _, a in args = a }
-        m.text = "Developer"
-        _ = m.handle(.openNew)
-        #expect(args == [])
-    }
-}
-
-@MainActor
-@Suite struct SelectionTests {
-    @Test func typingLightsNothing() {
-        let m = PaletteModel()
-        m.text = "Dev"
-        #expect(m.selected == nil)
-    }
-}
 
 @Suite struct LaunchOptionsTests {
     @Test func defaultsAddNothing() {
@@ -176,36 +129,23 @@ import Testing
         #expect(u?.week?.resetsAt != nil)
     }
 
+    @Test func timeLeftIsShort() {
+        let now = Date()
+        #expect(UsageLine.left(until: now.addingTimeInterval(42 * 60 + 5), now: now) == "42m")
+        #expect(UsageLine.left(until: now.addingTimeInterval(2 * 3600 + 14 * 60 + 5), now: now) == "2h 14m")
+        #expect(UsageLine.left(until: now.addingTimeInterval(3 * 86_400 + 4 * 3600 + 5), now: now) == "3d 4h")
+    }
+
     @Test func nothingWhenThereAreNoWindows() {
         #expect(Usage.parse(Data(#"{"error":"x"}"#.utf8)) == nil)
     }
 }
 
-@MainActor
-@Suite struct KeyTests {
-    @Test func upAtTheTopStaysThere() {
-        let m = PaletteModel()
-        m.text = "Dev"
-        guard !m.rows.isEmpty else { return }
-        m.selected = nil
-        _ = m.handle(.up)
-        #expect(m.selected == nil)
-    }
-
-    @Test func tabWithNothingLitDoesNothing() {
-        let m = PaletteModel()
-        m.text = "Dev"
-        m.selected = nil
-        _ = m.handle(.tab)
-        #expect(m.text == "Dev")
-        #expect(m.selected == nil)
-    }
-}
 
 @MainActor
 @Suite struct MarkedDefaultTests {
     @Test func openingStartsFromTheDefaults() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(3, of: LaunchOptions.effort)
         m.pick(2, of: LaunchOptions.permissions)
         m.reset()
@@ -213,7 +153,7 @@ import Testing
     }
 
     @Test func pickingTheDefaultLevelAddsNoFlag() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(0, of: LaunchOptions.effort)
         let def = m.defaultValue(of: LaunchOptions.effort)
         #expect(m.shown(LaunchOptions.effort) == def)
@@ -224,7 +164,7 @@ import Testing
     }
 
     @Test func stepsNeverReachTheHiddenDefault() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(1, of: LaunchOptions.effort)
         m.step(LaunchOptions.effort, by: -1)
         #expect(m.shown(LaunchOptions.effort) == 1)
@@ -278,37 +218,109 @@ import Testing
     }
 }
 
+
 @MainActor
-@Suite struct ActiveNavigationTests {
-    @Test func downGoesThroughActiveThenFolders() {
-        let m = PaletteModel()
-        m.live = [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())]
-        m.text = ""
-        _ = m.handle(.down)
-        #expect(m.liveSelected == 0)
-        _ = m.handle(.up)
-        #expect(m.liveSelected == nil)
-    }
-
-    @Test func nothingTypedShowsNoFolders() {
-        let m = PaletteModel()
-        m.reset()
-        #expect(m.rows.isEmpty)
-    }
-
-    @Test func typingFindsPastSessionsByTitleAndEnterResumes() {
-        let m = PaletteModel()
+@Suite struct FlowTests {
+    private func model(sessions: [SessionInfo] = [], live: [LiveSession] = []) -> MainModel {
+        let m = MainModel()
         let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "s1", title: "Fix the effort slider", updated: Date())])]
-        m.live = []
-        var got: (String, [String])?
-        m.onOpen = { got = ($0, $1) }
-        m.text = "effort slider"
-        #expect(m.sessionMatches.count == 1)
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: sessions)]
+        m.live = live
+        return m
+    }
+
+    @Test func opensOnEveryRunningSession() {
+        let live = (0..<9).map { LiveSession(pid: Int32($0 + 1), sessionId: "\($0)", cwd: "/tmp", name: "s\($0)", state: .idle, waitingFor: nil, since: Date()) }
+        let m = model(live: live)
+        #expect(m.moment == .running)
+        #expect(m.count == 9)
+        var focused: LiveSession?
+        m.onFocus = { focused = $0 }
         _ = m.handle(.down)
-        #expect(m.matchSelected == 0)
         _ = m.handle(.enter)
-        #expect(got?.0 == "Developer")
-        #expect(got?.1 == ["--resume", "s1"])
+        #expect(focused?.sessionId == "0")
+    }
+
+    @Test func typingListsFoldersAndEnterOpensTheStepWithNewLit() {
+        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())])
+        m.text = "Developer"
+        #expect(m.moment == .folders)
+        _ = m.handle(.enter)
+        #expect(m.moment == .step)
+        #expect(m.selected == 0)
+        #expect(m.stepItems.count == 2)
+        #expect(m.stepItems.first == .new)
+    }
+
+    @Test func enterTwiceStartsANewSession() {
+        let m = model()
+        var opened: (String, [String])?
+        m.onOpen = { opened = ($0, $1) }
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        _ = m.handle(.enter)
+        #expect(opened?.0.hasPrefix("Developer") == true)
+        #expect(opened?.1 == [])
+    }
+
+    @Test func searchingLightsTheBestMatchSoTheShortcutOpensIt() {
+        let m = model()
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
+        m.text = "Develop"
+        #expect(m.selected == 0)
+        m.hotkeyAgain()
+        #expect(opened?.hasPrefix("Developer") == true)
+    }
+
+    @Test func aPastSessionResumes() {
+        let m = model(sessions: [SessionInfo(id: "p", title: "Old work", updated: Date())])
+        var opened: [String]?
+        m.onOpen = { _, a in opened = a }
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        _ = m.handle(.down)
+        _ = m.handle(.enter)
+        #expect(opened == ["--resume", "p"])
+    }
+
+    @Test func escapeBacksOutOneStepAtATime() {
+        let m = model()
+        var closed = false
+        m.onClose = { closed = true }
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        _ = m.handle(.escape)
+        #expect(m.moment == .folders)
+        _ = m.handle(.escape)
+        #expect(m.text.isEmpty)
+        #expect(!closed)
+        _ = m.handle(.escape)
+        #expect(closed)
+    }
+
+    @Test func tabLightsTheFirstLine() {
+        let m = model(live: [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())])
+        _ = m.handle(.tab)
+        #expect(m.selected == 0)
+    }
+
+    @Test func theShortcutAgainStartsInTheLitFolderOrHome() {
+        let m = model()
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
+        m.hotkeyAgain()
+        #expect(opened == "")
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        m.hotkeyAgain()
+        #expect(opened?.hasPrefix("Developer") == true)
+    }
+
+    @Test func upAtTheTopStaysThere() {
+        let m = model()
+        m.text = "Dev"
+        _ = m.handle(.up)
+        #expect(m.selected == nil)
     }
 }

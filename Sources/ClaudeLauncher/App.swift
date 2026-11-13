@@ -3,50 +3,57 @@ import KeyboardShortcuts
 import ServiceManagement
 
 extension KeyboardShortcuts.Name {
-    static let openClaude = Self("openClaude")
+    /// ⌥C unless another was picked in the onboarding
+    static let openClaude = Self("openClaude", default: .init(.c, modifiers: [.option]))
 }
-
-/// option c: what the keychron key sends. there is no recorder in the app, so this is set at every
-/// launch: a stored older shortcut never outlives a change here.
-private let openClaudeShortcut = KeyboardShortcuts.Shortcut(.c, modifiers: [.option])
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var palette: PaletteController?
+    private var panel: PanelController?
+    private let onboarding = OnboardingController()
 
-    /// the app was "Abrir Claude" (com.aaangelmartin.abrir-claude) before: its recent folders come along once
+    /// the app was "Open Claude" and, before that, "Abrir Claude": their recent folders, place and
+    /// shortcut come along once, from the newest that has them
     private static func bringOverRecents() {
         let defaults = UserDefaults.standard
-        guard defaults.object(forKey: "recentFolders") == nil,
-              let old = UserDefaults(suiteName: "com.aaangelmartin.abrir-claude") else { return }
-        for key in ["recentFolders", "recentFolderDates", "barTopLeft", "theme"] {
-            if let value = old.object(forKey: key) { defaults.set(value, forKey: key) }
+        guard defaults.object(forKey: "recentFolders") == nil else { return }
+        for domain in ["com.aaangelmartin.open-claude", "com.aaangelmartin.abrir-claude"] {
+            guard let old = UserDefaults(suiteName: domain), old.object(forKey: "recentFolders") != nil else { continue }
+            for key in ["recentFolders", "recentFolderDates", "barTopLeft", "theme", "KeyboardShortcuts_openClaude"] {
+                if let value = old.object(forKey: key) { defaults.set(value, forKey: key) }
+            }
+            return
         }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = Self.editMenu()
         Self.bringOverRecents()
-        let palette = PaletteController()
-        self.palette = palette
-        KeyboardShortcuts.setShortcut(openClaudeShortcut, for: .openClaude)
+        let panel = PanelController()
+        self.panel = panel
         // on key down, as claude's own quick entry: it opens while the key is still going down
-        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak palette] in
-            MainActor.assumeIsolated { palette?.hotkey() }
+        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak panel, weak self] in
+            MainActor.assumeIsolated {
+                // while the setup is open the shortcut answers there (its caps, then the window)
+                if let onboarding = self?.onboarding, onboarding.isVisible { onboarding.hotkey() } else { panel?.hotkey() }
+            }
         }
 
-        // the first launch: start at login from now on, and show the palette once so it is clear it works
+        panel.onSetup = { [weak self] in self?.onboarding.show() }
+        onboarding.onFinish = { [weak panel] in panel?.show() }
+
+        // the first launch: start at login from now on, and walk through the setup once
         let defaults = UserDefaults.standard
         if !defaults.bool(forKey: "didFirstLaunch") {
             defaults.set(true, forKey: "didFirstLaunch")
             try? SMAppService.mainApp.register()
-            palette.show()
         }
+        if !OnboardingController.isDone { onboarding.show() }
     }
 
-    // opening the app again while it runs (finder, spotlight) shows the palette
+    // opening the app again while it runs (finder, spotlight) shows the window
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        palette?.show()
+        panel?.show()
         return false
     }
 

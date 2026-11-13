@@ -1,0 +1,41 @@
+# releaaase.yaml - the one source of truth of this project for releaaase.
+# the version follows the convention (semver 2.0.0): MAJOR.MINOR.PATCH, prereleases
+# -alpha.N, -beta.N, -rc.N. no build here: the build number is the highest of app
+# store connect and the local tags, plus one. releaaase copies the version into
+# project.yml, Info.plist, .xcconfig, Cargo.toml, package.json and build.gradle.
+
+name: Claude Launcher
+version: 1.0.0
+
+# each platform: bundle_id (testflight and the app store need it), apple_id once the
+# app record exists, project (.xcodeproj or .xcworkspace) and scheme, export_method,
+# and ships_to: testflight, app_store, github, homebrew.
+platforms:
+- platform: macos
+  bundle_id: com.aaangelmartin.claude-launcher
+  ships_to:
+  - github
+
+# github: repo (owner/repo), assets for every release, homebrew (tap, formula).
+github:
+  repo: aaangelmartin/claude-launcher
+  assets:
+  - dist/claude-launcher-v{version}.zip
+
+changelog: CHANGELOG.md
+
+# the groups a beta goes to; reaching external groups asks for approval.
+testflight:
+  internal_groups: []
+  external_groups: []
+  locale: en-US
+
+# what asks before it happens: allow, ask (the iphone, the mac app, paaager) or deny.
+approvals:
+  internal_testers: allow
+  external_testers: ask
+  submit: ask
+  publish: ask
+  delete: ask
+  raw_writes: ask
+  approve_without_tty: deny

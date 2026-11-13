@@ -1,171 +1,146 @@
-# open claude
+<p align="center">
+  <img src="docs/banner.png" alt="Claude Launcher: your Claude Code sessions, one shortcut away" width="100%">
+</p>
 
-A global shortcut (⌥C) opens a palette with the Claude Code sessions running now, and finds any folder or past session to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
+<p align="center">
+  <a href="https://github.com/aaangelmartin/claude-launcher/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/aaangelmartin/claude-launcher?style=flat-square&color=D97757&label=release"></a>
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-2B2826?style=flat-square">
+  <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-2B2826?style=flat-square"></a>
+</p>
 
-## Usage
+# Claude Launcher
 
-| You type | It opens in |
-|---|---|
-| nothing | your home folder |
-| `projects/my-app` | `~/projects/my-app` |
-| `~/projects/my-app` | same as above |
-| `/Volumes/disk/work` | that absolute path |
-| a folder that does not exist | Terminal shows the `cd` error and claude does not start |
+One shortcut for Claude Code on your Mac. Press **⌥C** anywhere to see every Claude Code session running right now and what it needs from you, or type a folder to start a new session there or resume one of its past ones.
 
-### Active sessions
-
-With nothing typed, the palette lists only the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over); with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
-
-- **↵** goes to the session: its Terminal tab is brought forward, or the app it runs in when it is not in Terminal.
-- **⌘↵** opens a new session in that session's folder.
-
-Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
-
-### Projects
-
-Folders and past sessions appear as you type. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
-
-Each known project shows on the right, in columns that line up, its git branch, when it was last used ("10m ago") and how many Claude sessions it has ("4 sessions ›"). Claude Code's sessions in `~/.claude/projects` are what make a folder known and give it its last use.
-
-### Past sessions
-
-While a name is typed, past sessions whose title has every word typed are listed under **Sessions**, newest first; **↵** resumes one in its own folder (`claude --resume <id>`), **⌘↵** opens a new session in that folder.
-
-### Open step
-
-**↵** on a folder (or **→** with the caret at the end of the text, or a click on its session count) moves to the open step, in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
-
-Keys:
-- **⌥C** opens the palette. With the palette open, pressing it again opens a new session at once: **⌥C ⌥C** opens Claude straight in your home folder.
-- **⌘↵** opens a new session at once, without the session list.
-- **⌥↓** opens the options at the bottom, **⌥↑** folds them.
-- **↵** on a folder goes to the open step: a new session or one of its past ones, with the launch options below. It acts on the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
-- **tab** completes with the highlighted row and lists that folder's subfolders. With no row highlighted it does nothing.
-- **→** at the end of the text also lists the highlighted project's sessions.
-- **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. The last row is the end of the list.
-- **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
-- **esc**, **⌘W** or a click outside close the palette.
-- **⌘Q** with the palette open quits the app. It starts again at login or from Applications.
-
-### Model, effort, permissions and session
-
-On the first screen the bottom line shows only the plan's use; in the open step it sits on the right of the options. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
-
-In the open step (after **↵** on a folder), the line at the bottom says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
-
-| Row | Control | `claude` flag |
-|---|---|---|
-| Model | full-width segmented control: Fable, Opus, Sonnet, Haiku, each with its number (Opus 5.5), read from the installed `claude` so it updates on its own. The model Claude starts with (your settings' model, or Opus) is marked *default* | `--model` with the alias (`opus`), which always runs the newest |
-| Effort | a track with the five levels, Faster to Smarter: low, medium, high, xhigh, max. The level the chosen model starts with is marked *default* (medium for Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable 5.2), read from the model table inside `claude`; the ball sits there until you pick another. The ball carries a dot of the level's colour and glows in it; dragged, it follows the pointer and settles on the nearest level | `--effort` |
-| Permissions | the modes Claude's Code view offers, in its order: Manual, Accept edits, Plan, Auto, Bypass. The mode your settings choose is marked *default*. The picked one is tinted in its colour; hover a mode to see what it does | `--permission-mode` |
-
-The colours come from the dark theme table inside `claude` itself:
-
-| Value | Colour |
-|---|---|
-| effort low | `warning`, yellow |
-| effort medium | `success`, green |
-| effort high | `permission`, lavender |
-| effort xhigh | `autoAccept`, purple, with a moving shimmer |
-| effort max | moving rainbow |
-| Manual | grey, `⏸` |
-| Plan | `planMode`, teal, `⏸` |
-| Accept edits | `autoAccept`, purple, `⏵⏵` |
-| Auto | `warning`, yellow, `⏵⏵` |
-| Bypass | `error`, pink red, `⏵⏵` |
-
-Keys in the options:
-- **↑ ↓** move between rows, and **↑** from the first goes back to the folders.
-- **← →** change the value.
-- **esc** or **⌥↑** fold the options; a second **esc** closes the palette.
-- **↵** or **⌥C** launch Claude.
-
-There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Every time the palette opens, the options start again from the defaults.
-
-The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. That is why opening and folding the options is smooth: the rows come in one after another.
-
-The shortcut is set in `App.swift` (`openClaudeShortcut`) and applied again on every launch. While the app runs, ⌥C no longer types "©".
-
-Opening the app from Spotlight or Finder also shows the palette. The list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
-
-## Look
-
-By default it copies **Claude's quick entry** (⌥Space in the desktop app). The values come from its own stylesheet (`quick-window.html` inside `app.asar`):
-- a transparent, shadowed panel 606 px wide, centred on the main display
-- draggable, and it remembers where you left it
-- a 56 px bar with a 16 radius
-- a gradient from `#403F3E` (at 95 %) to `#292523`, with a 0.5 px white ring at 20 %
-- the starburst in `#D97757` at 18 px, in a 56×56 cell
-- Anthropic Sans 16 px in white, placeholder `#A6A39B`, white caret
-- no field border, no focus ring, no fade when it appears
-
-Folders use Claude's dark tokens: text `#C2C0B6`, icons `#9C9A92`, and white at 9 % for the highlighted row.
-
-Anthropic Sans is loaded at launch from `/Applications/Claude.app`; it is not copied into this project. Without the Claude app the system font is used.
-
-The **laaabs.** style uses the same bar in black, with Outfit and a cyan caret. To switch:
-
-```sh
-defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
-pkill -x OpenClaude; open ~/Applications/"Open Claude.app"
-```
+![Running sessions](docs/running.png)
 
 ## Install
 
-Requirements:
-- macOS 14 or later and Xcode (Swift 6.2 or later)
-- the laaabs. kit at `~/Desktop/laaabs/marca/ui-swift`. If it lives elsewhere, change the `path:` in `Package.swift`
-- `claude` on a login shell's PATH (`zsh -lic 'command -v claude'`)
+```sh
+brew install --cask aaangelmartin/tap/claude-launcher
+```
+
+Then open **Claude Launcher** from Applications. The first launch walks you through a short setup: it checks that Claude Code is installed, asks for permission to control Terminal, and lets you pick your shortcut.
+
+### Requirements
+
+| | |
+|---|---|
+| **macOS 14** or later | Apple silicon or Intel |
+| **[Claude Code](https://claude.com/claude-code)** | the `claude` CLI, signed in |
+| **[Claude app](https://claude.ai/download)** | needed for the look: Claude Launcher uses Anthropic Sans and Anthropic Serif from it. Without it, the system fonts are used |
+
+## How it works
+
+Each moment has one purpose:
+
+1. **Opened**: every Claude Code session running now, with its state. **↵** brings its Terminal tab forward.
+2. **Typing**: folders to start or resume a session in, the best match already highlighted.
+3. **A folder** (**↵** on it): **New session**, already highlighted, then the sessions running there and its past ones to resume.
+
+![A folder](docs/folder.png)
+
+**Press your shortcut again** to start a new session at once: in the folder you are in, the highlighted one, or your home folder. Type `laaabs`, press ⌥C, and Claude starts there.
+
+### Session states
+
+Running sessions show the states Claude's Code view filters by:
+
+| State | Means |
+|---|---|
+| ✋ **Needs input** | it stopped on a question or a permission, and waits for you |
+| ◠ **Working** | Claude is working on it right now |
+| ✓ **Completed** | its turn is over; it waits for your next message |
+
+What needs you comes first.
+
+### Launch options
+
+When a session starts or resumes, the bar at the bottom shows how: **model**, **effort** and **permissions**. **⌥↓** (or a click on a value) opens them.
+
+![Launch options](docs/options.png)
+
+- **Model**: Fable, Opus, Sonnet, Haiku, with the numbers read from your installed `claude`, so they update with it.
+- **Effort**: low to max. The level each model starts with is marked *default*.
+- **Permissions**: Manual, Accept edits, Plan, Auto, Bypass. The mode your settings choose is marked *default*.
+
+They start from the defaults every time, and picking a default adds no flag, so Claude keeps following its own settings.
+
+### Plan use
+
+On the right of the bottom bar: your five-hour session and weekly use, as `/usage` shows them, with the time left until each resets. They turn yellow from 80 % and red from 95 %.
+
+## Keys
+
+| Key | Does |
+|---|---|
+| **⌥C** | bring up Claude Launcher; again, start a new session at once |
+| **↑ ↓** | move through the list |
+| **↵** | go to a running session, open a folder, start or resume a session |
+| **⌘↵** | start a new session at once |
+| **Tab** | highlight the first line; on a folder, complete its path |
+| **⌥↓ ⌥↑** | open and fold the launch options |
+| **esc** | back out one step: the folder, what is typed, then the window |
+| **⌘,** | the setup again (shortcut, checks) |
+| **⌘Q** | quit |
+
+A path works too: `~/projects/my-app`, `/Volumes/disk/work`, completed with **Tab**.
+
+## Setup
+
+![Setup](docs/setup.png)
+
+1. **Welcome**: what Claude Launcher does.
+2. **Check your setup**: Claude Code installed and its version, permission to control Terminal, Claude Code signed in (for the plan use), the Claude app (for its fonts), and start at login.
+3. **Your shortcut**: pick it; ⌥C by default.
+4. **You're set**: press it to begin.
+
+## Privacy
+
+Everything stays on your Mac, except one request for your plan use:
+
+- **Running sessions** are read from `~/.claude/sessions`, where Claude Code keeps a record of each live session.
+- **Past sessions** are read from `~/.claude/projects`: only the start and end of each file, for its folder and title.
+- **Plan use** is asked from Anthropic's API, the same request `/usage` makes, with the sign-in Claude Code keeps in your keychain. macOS asks you once before Claude Launcher can read it. It is only read, never refreshed or stored, and nothing else is sent anywhere.
+- **Terminal** is controlled with Apple Events to open a window and run `claude` in it; macOS asks you first.
+
+## Build from source
+
+Requirements: Xcode with Swift 6.2 or later, and the laaabs. kit next to it (`Package.swift` points at it with `path:`).
 
 ```sh
-cd ~/Developer/open-claude
-./scripts/install.sh
+git clone https://github.com/aaangelmartin/claude-launcher
+cd claude-launcher
+./scripts/install.sh        # build, sign and install in ~/Applications
+swift test                  # the tests
 ```
 
-The script:
-1. Builds for arm64 and x86_64.
-2. Assembles `build/Open Claude.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
-3. Signs with the first valid "Developer ID Application" certificate in the keychain. `SIGN_IDENTITY=-` signs ad hoc.
-4. Installs it in `~/Applications` and opens it.
-
-On first launch it adds itself to the login items and shows the palette once.
-
-## macOS permissions
-
-- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, the palette says so and offers a button to System Settings → Privacy & Security → Automation.
-- **Login item**: macOS posts a notification that it was added. Manage it in System Settings → General → Login Items.
-
-The global shortcut needs no Accessibility permission, since it uses `KeyboardShortcuts` (Carbon hotkeys).
-
-## Layout
-
-```
-Sources/OpenClaude/
-  App.swift            launch, global shortcut, login item
-  PalettePanel.swift   floating panel that never activates the app, keys, position
-  PaletteView.swift    the palette in SwiftUI
-  Theme.swift          the two styles (claude and laaabs.) and loading Claude's fonts
-  PaletteModel.swift   text, rows, selection, notices, options
-  FolderPath.swift     from what is typed to an absolute path and a shell command
-  Suggestions.swift    folder completion and recents
-  Projects.swift       known projects, claude's sessions, git branches and fuzzy matching
-  Usage.swift          the plan's session and weekly use
-  LiveSessions.swift   the claude sessions running now, their state, and bringing one forward
-  Terminal.swift       the AppleScript that opens the Terminal window
-  LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
-  ModelVersions.swift  the newest model numbers, read from the installed claude
-  OptionsView.swift    the summary line, the rows, the effort slider and the painted text
-Resources/             Info.plist, entitlements, claude svg
-scripts/               install.sh, make-icon.swift
-Tests/                 paths, suggestions, selection, options and model versions (swift test)
-                       SNAPSHOT_DIR=/path swift test --filter Snapshot renders the palette to png off screen
-```
+`scripts/release.sh` builds the notarized zip that the Homebrew cask installs, and `DOCS_DIR=docs swift test --filter DocsImages` redraws this readme's images from the app's own views. Changes are listed in the [changelog](CHANGELOG.md).
 
 ## Uninstall
 
 ```sh
-pkill -x OpenClaude
-rm -rf ~/Applications/"Open Claude.app"
+brew uninstall --cask claude-launcher
 ```
 
-Then remove it from System Settings → General → Login Items if it is still listed.
+Remove it from System Settings → General → Login Items if it is still listed.
+
+## Legal
+
+Claude Launcher is an independent project. It is **not made, endorsed or supported by Anthropic**. "Claude", "Claude Code" and "Anthropic" are trademarks of Anthropic, PBC, used here only to say what this app works with.
+
+- **Fonts**: Anthropic Sans and Anthropic Serif are Anthropic's typefaces. They are not in this repository or in the app; Claude Launcher loads them from your installed [Claude app](https://claude.ai/download) while it runs.
+- **The Claude mark** in the window and the icon is Anthropic's, and remains theirs.
+- **The aaangelmartin wordmark** belongs to Ángel Martín and is not licensed for reuse.
+
+The code is released under the [Apache License 2.0](LICENSE); see [NOTICE](NOTICE) for the third-party material it does not cover.
+
+<p align="center">
+  <br>
+  <a href="https://aaangelmartin.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="Resources/aaangelmartin.svg">
+      <img src="docs/aaangelmartin-dark.svg" alt="aaangelmartin" height="18">
+    </picture>
+  </a>
+</p>

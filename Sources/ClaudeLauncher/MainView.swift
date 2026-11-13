@@ -1,14 +1,19 @@
 import AppKit
+import LaaabsKit
 import SwiftUI
 
-/// the palette, built as claude desktop's quick entry: one 56 pt bar with the starburst in a 56 pt
+/// the window, built as claude desktop's quick entry: one 56 pt bar with the starburst in a 56 pt
 /// cell and the field beside it, no field border, no focus ring. folders (recent while empty, matching
 /// while typing) open under a hairline inside the same card and scroll past seven. at the bottom, the
 /// launch options: one summary line that opens into four rows, each changed with ← →.
-struct PaletteView: View {
-    @ObservedObject var model: PaletteModel
+struct MainView: View {
+    @ObservedObject var model: MainModel
     @FocusState private var fieldFocused: Bool
-    private let theme = PaletteTheme.current
+    /// the lit row's light: one shape that glides from row to row
+    @Namespace private var lit
+    /// the window comes in with a short fade and a hint of scale
+    @State private var shown = false
+    private let theme = AppTheme.current
 
     /// claude's quick entry window is 606 wide; its bar fills it
     static let width: CGFloat = 606
@@ -26,56 +31,59 @@ struct PaletteView: View {
                 noticeView(notice)
             }
 
-            if model.sessionsFolder != nil {
-                divider
-                SessionList(model: model, theme: theme)
-            } else {
-                let active = model.shownLive
-                let matches = model.sessionMatches
-                if !active.isEmpty || !matches.isEmpty || !model.rows.isEmpty { divider }
-                if !active.isEmpty {
-                    ActiveList(model: model, sessions: active, theme: theme)
-                }
-                if !matches.isEmpty {
-                    MatchList(model: model, matches: matches, theme: theme)
-                }
-                if !model.rows.isEmpty {
-                    rowsView
-                }
-                if active.isEmpty, model.text.trimmingCharacters(in: .whitespaces).isEmpty {
-                    divider
-                    Text(theme.say("No Claude sessions running. Type to find a folder or a past session."))
-                        .font(theme.label)
-                        .foregroundStyle(theme.textMuted)
-                        .padding(.leading, Self.barHeight)
-                        .frame(height: 40)
+            divider
+            Group {
+                switch model.moment {
+                case .running:
+                    if model.live.isEmpty {
+                        hint("No sessions running. Type a folder to start one.")
+                    } else {
+                        RunningList(model: model, theme: theme)
+                    }
+                case .folders:
+                    if !model.rows.isEmpty {
+                        rowsView
+                    } else if let folder = model.typedFolder {
+                        hint("↵  Open \(folder.isEmpty ? "~" : folder)")
+                    } else {
+                        hint("No folder matches.")
+                    }
+                case .step:
+                    StepList(model: model, theme: theme)
                 }
             }
+            // a folder slides in from the right; going back, it fades
+            .id(model.moment == .step ? "step:\(model.stepFolder ?? "")" : model.moment == .running ? "running" : "folders")
+            .transition(model.moment == .step
+                        ? .asymmetric(insertion: .opacity.combined(with: .offset(x: 12)), removal: .opacity)
+                        : .opacity)
 
-            // what to launch with matters only once a folder is picked: the options live in that step,
-            // the first screen only shows the plan's use
-            if model.sessionsFolder != nil {
-                divider
-                OptionsSection(model: model, theme: theme)
-            } else if let usage = model.usage {
-                divider
-                HStack {
-                    Spacer()
-                    UsageLine(usage: usage, theme: theme)
-                }
-                .padding(.trailing, 20)
-                .frame(height: 36)
-            }
+            // one footer everywhere, its left side changing with what can be done
+            divider
+            OptionsSection(model: model, theme: theme)
         }
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
+        // the card grows and shrinks smoothly as what it shows changes
+        .animation(.easeOut(duration: 0.18), value: model.moment)
+        .animation(.easeOut(duration: 0.18), value: model.stepFolder)
+        .animation(.easeOut(duration: 0.1), value: model.selected)
+        .environment(\.litNamespace, lit)
         .background(
             LinearGradient(colors: [theme.gradientTop, theme.gradientBottom], startPoint: .top, endPoint: .bottom)
         )
         .clipShape(RoundedRectangle(cornerRadius: Self.radius))
         .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(theme.ring, lineWidth: 0.5))
-        .onAppear { fieldFocused = true }
-        .onReceive(NotificationCenter.default.publisher(for: .paletteDidShow)) { _ in fieldFocused = true }
+        .opacity(shown ? 1 : 0)
+        .onAppear { fieldFocused = true; appear() }
+        .onReceive(NotificationCenter.default.publisher(for: .windowDidShow)) { _ in fieldFocused = true; appear() }
+    }
+
+    private func appear() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { shown = false }
+        withAnimation(.easeOut(duration: 0.1)) { shown = true }
     }
 
     // MARK: the bar
@@ -87,7 +95,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight, height: Self.barHeight)
             TextField(
                 "", text: $model.text,
-                prompt: Text(theme.say("Search folders and sessions")).foregroundStyle(theme.placeholder)
+                prompt: Text(theme.say(placeholder)).foregroundStyle(theme.placeholder)
             )
             .textFieldStyle(.plain)
             .font(theme.input)
@@ -95,9 +103,24 @@ struct PaletteView: View {
             .focused($fieldFocused)
             .autocorrectionDisabled()
             .frame(height: 24)
-            .padding(.trailing, 30)
+            .padding(.trailing, 12)
+            // a quiet signature: the aaangelmartin wordmark, drawn from its own vector, never typed
+            Signature()
+                .frame(height: 11)
+                .padding(.trailing, 20)
+                .allowsHitTesting(false)
         }
         .frame(height: Self.barHeight)
+    }
+
+    private var placeholder: String { "Launch Claude in…" }
+
+    private func hint(_ line: String) -> some View {
+        Text(theme.say(line))
+            .font(theme.label)
+            .foregroundStyle(theme.textMuted)
+            .padding(.leading, Self.barHeight)
+            .frame(height: 40)
     }
 
     private var divider: some View {
@@ -110,16 +133,17 @@ struct PaletteView: View {
 
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionLabel(title: "Folders", hint: "↵ open", theme: theme)
+            SectionLabel(title: "Folders", hint: "", theme: theme)
             FolderList(model: model, theme: theme)
                 // a new list (typing, tab) is a new scroll view: it always starts at the top, same margins
                 .id(model.listID)
+                .transition(.identity)
         }
     }
 
     // MARK: permission notice
 
-    private func noticeView(_ notice: PaletteModel.Notice) -> some View {
+    private func noticeView(_ notice: MainModel.Notice) -> some View {
         HStack(spacing: 0) {
             Image(systemName: "exclamationmark.circle")
                 .font(.system(size: 13))
@@ -127,7 +151,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight)
             Group {
                 switch notice {
-                case .notAllowed: Text(theme.say("Open Claude needs permission to control Terminal."))
+                case .notAllowed: Text(theme.say("Claude Launcher needs permission to control Terminal."))
                 case let .failed(message): Text(theme.say("Terminal did not respond: ") + message)
                 case let .windowNotFound(name): Text(theme.say("Could not find the window of \(name)."))
                 }
@@ -149,8 +173,8 @@ struct PaletteView: View {
 /// the folders under the bar: seven rows tall, then it scrolls, with a thin thumb of its own (no system
 /// track) and soft edges where there is more to see.
 private struct FolderList: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
     /// where the pointer was when this list appeared: a row under a pointer that has not moved is not
     /// picked, only one the pointer moves onto
     @State private var pointerAtStart = NSEvent.mouseLocation
@@ -164,11 +188,15 @@ private struct FolderList: View {
     private static let fade: CGFloat = 18
     private static let topID = -1
     private static let endID = Int.max
-    private var rowHeight: CGFloat { PaletteView.rowHeight }
+    private var rowHeight: CGFloat { MainView.rowHeight }
     private var visibleHeight: CGFloat {
-        CGFloat(min(model.rows.count, PaletteView.visibleRows)) * rowHeight + Self.padding * 2
+        CGFloat(min(model.rows.count, MainView.visibleRows)) * rowHeight + Self.padding * 2
     }
-    private var overflows: Bool { model.rows.count > PaletteView.visibleRows }
+    private var overflows: Bool { model.rows.count > MainView.visibleRows }
+    private var columns: (time: Bool, sessions: Bool) {
+        let infos = model.rows.compactMap { model.info(for: $0) }
+        return (infos.contains { $0.lastUsed != nil }, infos.contains { !$0.sessions.isEmpty })
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -180,7 +208,7 @@ private struct FolderList: View {
                             row: row, prefix: model.typedParent, theme: theme,
                             isSelected: index == model.selected,
                             info: model.info(for: row),
-                            openSessions: { model.openSessions(of: row) }
+                            columns: columns
                         )
                         .id(index)
                         .onContinuousHover { phase in
@@ -304,11 +332,12 @@ private struct TrackScroll: ViewModifier {
 private struct FolderRow: View {
     let row: String
     let prefix: String
-    let theme: PaletteTheme
+    let theme: AppTheme
     let isSelected: Bool
     /// its branch, when it was last used and its claude sessions, for a known project
     var info: ProjectInfo?
-    var openSessions: () -> Void = {}
+    /// which columns the list shows (any of its rows has them)
+    var columns: (time: Bool, sessions: Bool) = (true, true)
 
     var body: some View {
         let (parent, name) = split
@@ -317,7 +346,7 @@ private struct FolderRow: View {
             Image(systemName: "folder")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(isSelected ? theme.text : theme.icon)
-                .frame(width: PaletteView.barHeight - 16)
+                .frame(width: MainView.barHeight - 16)
                 .padding(.trailing, 8)
             (Text(parent).foregroundStyle(theme.textMuted)
                 + Text(name.hasSuffix("/") ? String(name.dropLast()) : name) // the trailing slash is for tab, not for reading
@@ -330,11 +359,8 @@ private struct FolderRow: View {
             if let info { meta(info) }
         }
         .padding(.trailing, 12)
-        .frame(height: PaletteView.rowHeight)
-        .background(
-            isSelected ? theme.rowSelected : .clear,
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .frame(height: MainView.rowHeight)
+        .background { if isSelected { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
     }
@@ -350,24 +376,17 @@ private struct FolderRow: View {
                 }
                 .frame(maxWidth: 150, alignment: .trailing)
             }
-            Text(info.lastUsed.map { Ago.long($0) } ?? "")
-                .monospacedDigit()
-                .frame(width: 58, alignment: .trailing)
-            Group {
-                if info.sessions.isEmpty {
-                    Color.clear
-                } else {
-                    HStack(spacing: 4) {
-                        Text(info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions").monospacedDigit()
-                        Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
-                    }
-                    .frame(height: 22)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: openSessions)
-                    .help("Sessions")
-                }
+            // a column only when some row of the list fills it, so nothing sits empty
+            if columns.time {
+                Text(info.lastUsed.map { Ago.long($0) } ?? "")
+                    .monospacedDigit()
+                    .frame(width: 58, alignment: .trailing)
             }
-            .frame(width: 92, alignment: .trailing)
+            if columns.sessions {
+                Text(info.sessions.isEmpty ? "" : info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions")
+                    .monospacedDigit()
+                    .frame(width: 74, alignment: .trailing)
+            }
         }
         .font(theme.label)
         .foregroundStyle(theme.textMuted.opacity(0.8))
@@ -385,7 +404,7 @@ private struct FolderRow: View {
 }
 
 private struct ClaudeButtonStyle: ButtonStyle {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -394,6 +413,30 @@ private struct ClaudeButtonStyle: ButtonStyle {
             .padding(.horizontal, 12)
             .frame(height: 30)
             .background(theme.button.opacity(configuration.isPressed ? 0.85 : 1), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// the aaangelmartin wordmark from its vector (the one aaangelmartin.com serves), white at a whisper
+struct Signature: View {
+    private static let image: NSImage? = {
+        let bundled = Bundle.main.url(forResource: "aaangelmartin", withExtension: "svg")
+        // running from the package (tests, previews): the file next to the sources
+        let local = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("../../Resources/aaangelmartin.svg").standardized
+        guard let url = bundled ?? (FileManager.default.fileExists(atPath: local.path) ? local : nil),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        return image
+    }()
+
+    var body: some View {
+        if let image = Self.image {
+            Image(nsImage: image)
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .foregroundStyle(Color.white.opacity(0.28))
+        }
     }
 }
 
@@ -421,144 +464,153 @@ struct ClaudeMark: View {
     }
 }
 
-/// a folder's claude sessions, in place of the folders: a header with the folder (← goes back), then
-/// a new session and each session newest first, by title, with how long ago it ran. enter opens the
-/// lit one (claude --resume for a session); the launch options below still apply.
-private struct SessionList: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+
+
+/// a line of a list: an icon in the starburst's column, a title, its folder dimmed, something on the
+/// right; lit by the keys or the pointer
+private struct ListLine: View {
+    @ObservedObject var model: MainModel
+    let index: Int
+    let icon: AnyView
+    let title: String
+    let folder: String?
+    let trailing: AnyView
+    let theme: AppTheme
 
     var body: some View {
-        let sessions = model.sessionList
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "chevron.left").font(.system(size: 10, weight: .semibold))
-                Text(model.sessionsFolder.map { $0.isEmpty ? "~" : $0.hasSuffix("/") ? String($0.dropLast()) : $0 } ?? "")
-                    .foregroundStyle(theme.textRow)
-                if let branch = model.sessionsFolder.flatMap({ model.info(for: $0)?.branch }) {
-                    Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5)).padding(.leading, 6)
-                    Text(branch)
-                }
-                Spacer()
-                Text(theme.say(sessions.isEmpty ? "No past sessions" : sessions.count == 1 ? "1 past session" : "\(sessions.count) past sessions"))
-            }
-            .font(theme.label)
-            .foregroundStyle(theme.textMuted)
-            .padding(.leading, 22)
-            .padding(.trailing, 20)
-            .frame(height: 30)
-            .contentShape(Rectangle())
-            .onTapGesture { model.closeSessions() }
-
-            ScrollViewReader { proxy in
-                ScrollView(.vertical) {
-                    LazyVStack(spacing: 0) {
-                        line(0, icon: "plus", title: theme.say("New session"), time: nil)
-                        ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
-                            line(i + 1, icon: "text.bubble", title: s.title, time: Ago.long(s.updated))
-                        }
-                    }
-                    .padding(.vertical, 6)
-                }
-                .scrollIndicators(.never)
-                .frame(height: CGFloat(min(sessions.count + 1, PaletteView.visibleRows)) * PaletteView.rowHeight + 12)
-                .onChange(of: model.sessionSelected) { _, i in
-                    withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(i) }
-                }
-            }
-        }
-    }
-
-    private func line(_ index: Int, icon: String, title: String, time: String?) -> some View {
-        let on = index == model.sessionSelected
-        return HStack(spacing: 0) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(on ? theme.text : theme.icon)
-                .frame(width: PaletteView.barHeight - 16)
+        let on = index == model.selected
+        HStack(spacing: 0) {
+            icon
+                .frame(width: MainView.barHeight - 16)
                 .padding(.trailing, 8)
             Text(title)
                 .font(theme.row)
                 .foregroundStyle(on ? theme.text : theme.textRow)
                 .lineLimit(1)
-            Spacer(minLength: 12)
-            if let time {
-                Text(time).font(theme.label).monospacedDigit().foregroundStyle(theme.textMuted)
+                .layoutPriority(1)
+            if let folder {
+                let shown = FolderPath.display(folder)
+                Text(shown.isEmpty ? "~" : shown)
+                    .font(theme.label)
+                    .foregroundStyle(theme.textMuted.opacity(0.8))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                    .padding(.leading, 10)
             }
+            Spacer(minLength: 12)
+            trailing.font(theme.label).lineLimit(1)
         }
         .padding(.trailing, 12)
-        .frame(height: PaletteView.rowHeight)
-        .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .frame(height: MainView.rowHeight)
+        .background { if on { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
         .id(index)
-        .onHover { if $0 { model.sessionSelected = index } }
-        .onTapGesture { model.openSession(index) }
+        .onContinuousHover { phase in if case .active = phase { model.point(at: index) } }
+        .onTapGesture { model.act(on: index) }
     }
 }
 
-/// the claude code sessions running now: a dot for what each is doing (working pulses, needing you is
-/// yellow), its name and folder, and the state with how long it has been in it. enter goes to it.
-private struct ActiveList: View {
-    @ObservedObject var model: PaletteModel
-    let sessions: [LiveSession]
-    let theme: PaletteTheme
+/// a scrolling list that keeps the lit line in sight
+private struct ScrollingList<Content: View>: View {
+    @ObservedObject var model: MainModel
+    let lines: Int
+    /// room for a section label among the lines
+    var labelled = true
+    @ViewBuilder let content: () -> Content
 
     var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 0) { content() }
+                    .padding(.bottom, 6)
+            }
+            .scrollIndicators(.never)
+            .frame(height: CGFloat(min(lines, 10)) * MainView.rowHeight + (labelled ? 28 : 0) + 6)
+            .onChange(of: model.selected) { _, i in
+                guard let i, !model.selectedByPointer else { return }
+                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(i) }
+            }
+        }
+    }
+}
+
+/// what opens first: every claude code session running now, with its state as claude's code view
+/// shows it. enter goes to one.
+private struct RunningList: View {
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
+
+    var body: some View {
+        ScrollingList(model: model, lines: model.live.count) {
+            SectionLabel(title: "Running", hint: "", theme: theme)
+            ForEach(Array(model.live.enumerated()), id: \.element.id) { i, s in
+                ListLine(model: model, index: i, icon: AnyView(StateDot(state: s.state)), title: s.name, folder: s.cwd,
+                         trailing: AnyView(HStack(spacing: 12) {
+                             Text(StateWords.label(s.state)).foregroundStyle(StateWords.colour(s.state, theme))
+                             Text(Ago.long(s.since)).monospacedDigit().foregroundStyle(theme.textMuted.opacity(0.8))
+                                 .frame(width: 58, alignment: .trailing)
+                         }), theme: theme)
+            }
+        }
+    }
+}
+
+/// a folder's step: a new session (lit), the sessions running there, then its past ones to resume
+private struct StepList: View {
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
+
+    var body: some View {
+        let items = model.stepItems
+        let folder = model.stepFolder ?? ""
+        let shown = folder.hasSuffix("/") ? String(folder.dropLast()) : folder
         VStack(alignment: .leading, spacing: 0) {
-            SectionLabel(title: "Active", hint: "↵ go to it", theme: theme,
-                         trailing: model.live.count > sessions.count && model.text.isEmpty ? "\(model.live.count - sessions.count) more, type to find them" : nil)
-            VStack(spacing: 0) {
-                ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
-                    row(i, s)
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.left").font(.system(size: 9.5, weight: .semibold))
+                Text(shown.isEmpty ? "~" : shown).foregroundStyle(theme.textRow)
+                if let branch = model.info(for: folder)?.branch {
+                    Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5)).padding(.leading, 6)
+                    Text(branch)
+                }
+                Spacer()
+            }
+            .font(theme.label)
+            .foregroundStyle(theme.textMuted)
+            .padding(.leading, 22)
+            .padding(.trailing, 20)
+            .frame(height: 32)
+            .contentShape(Rectangle())
+            .onTapGesture { model.closeStep() }
+
+            ScrollingList(model: model, lines: items.count, labelled: items.count > 1) {
+                ForEach(Array(items.enumerated()), id: \.offset) { i, item in
+                    switch item {
+                    case .new:
+                        ListLine(model: model, index: i, icon: AnyView(Image(systemName: "plus").font(.system(size: 12, weight: .medium)).foregroundStyle(theme.textRow)),
+                                 title: theme.say("New session"), folder: nil,
+                                 trailing: AnyView(Text("↵").foregroundStyle(theme.textMuted.opacity(i == model.selected ? 0.9 : 0))), theme: theme)
+                        if items.count > 1 {
+                            SectionLabel(title: "Sessions", hint: "", theme: theme)
+                        }
+                    case let .running(s):
+                        ListLine(model: model, index: i, icon: AnyView(StateDot(state: s.state)), title: s.name, folder: nil,
+                                 trailing: AnyView(Text(StateWords.label(s.state)).foregroundStyle(StateWords.colour(s.state, theme))), theme: theme)
+                    case let .past(s):
+                        ListLine(model: model, index: i, icon: AnyView(Image(systemName: "clock.arrow.circlepath").font(.system(size: 11.5)).foregroundStyle(theme.icon)),
+                                 title: s.title, folder: nil,
+                                 trailing: AnyView(Text(Ago.long(s.updated)).monospacedDigit().foregroundStyle(theme.textMuted.opacity(0.8))), theme: theme)
+                    }
                 }
             }
-            .padding(.bottom, 4)
         }
     }
+}
 
-    private func row(_ index: Int, _ s: LiveSession) -> some View {
-        let on = index == model.liveSelected
-        let folder = FolderPath.display(s.cwd)
-        return HStack(spacing: 0) {
-            StateDot(state: s.state)
-                .frame(width: PaletteView.barHeight - 16)
-                .padding(.trailing, 8)
-            Text(s.name)
-                .font(theme.row)
-                .foregroundStyle(on ? theme.text : theme.textRow)
-                .lineLimit(1)
-                .layoutPriority(1)
-            Text(folder.isEmpty ? "~" : folder)
-                .font(theme.label)
-                .foregroundStyle(theme.textMuted.opacity(0.8))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .padding(.leading, 10)
-            Spacer(minLength: 12)
-            Text(Self.label(s))
-                .font(theme.label)
-                .foregroundStyle(Self.colour(s.state, theme))
-                .lineLimit(1)
-            Text(Ago.long(s.since))
-                .font(theme.label)
-                .monospacedDigit()
-                .foregroundStyle(theme.textMuted.opacity(0.8))
-                .frame(width: 58, alignment: .trailing)
-        }
-        .padding(.trailing, 12)
-        .frame(height: PaletteView.rowHeight)
-        .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
-        .padding(.horizontal, 8)
-        .contentShape(Rectangle())
-        .onHover { if $0 { model.pointLive(at: index) } }
-        .onTapGesture { model.focusLive(index) }
-        .help("↵ go to it   ⌘↵ new session in \(folder.isEmpty ? "~" : folder)")
-    }
-
-    /// the words claude's code view uses to filter sessions (needs input, working, completed)
-    static func label(_ s: LiveSession) -> String {
-        switch s.state {
+/// the words claude's code view filters sessions by, and their colours
+enum StateWords {
+    static func label(_ state: LiveSession.State) -> String {
+        switch state {
         case .busy: "Working"
         case .waiting: "Needs input"
         case .idle: "Completed"
@@ -566,7 +618,7 @@ private struct ActiveList: View {
     }
 
     /// needs input in claude code's warning yellow, working in the text colour, completed dimmed
-    static func colour(_ state: LiveSession.State, _ theme: PaletteTheme) -> Color {
+    static func colour(_ state: LiveSession.State, _ theme: AppTheme) -> Color {
         switch state {
         case .busy: theme.textRow
         case .waiting: Color(CC.warning)
@@ -602,70 +654,24 @@ private struct StateDot: View {
     }
 }
 
-/// past sessions found by their title while typing: enter resumes one in its own folder
-private struct MatchList: View {
-    @ObservedObject var model: PaletteModel
-    let matches: [(folder: String, session: SessionInfo)]
-    let theme: PaletteTheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionLabel(title: "Sessions", hint: "↵ resume", theme: theme)
-            ForEach(Array(matches.enumerated()), id: \.element.session.id) { i, m in
-                let on = i == model.matchSelected
-                HStack(spacing: 0) {
-                    Image(systemName: "text.bubble")
-                        .font(.system(size: 12))
-                        .foregroundStyle(on ? theme.text : theme.icon)
-                        .frame(width: PaletteView.barHeight - 16)
-                        .padding(.trailing, 8)
-                    Text(m.session.title)
-                        .font(theme.row)
-                        .foregroundStyle(on ? theme.text : theme.textRow)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                    Text(m.folder.isEmpty ? "~" : m.folder)
-                        .font(theme.label)
-                        .foregroundStyle(theme.textMuted.opacity(0.8))
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                        .padding(.leading, 10)
-                    Spacer(minLength: 12)
-                    Text(Ago.long(m.session.updated))
-                        .font(theme.label)
-                        .monospacedDigit()
-                        .foregroundStyle(theme.textMuted.opacity(0.8))
-                }
-                .padding(.trailing, 12)
-                .frame(height: PaletteView.rowHeight)
-                .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal, 8)
-                .contentShape(Rectangle())
-                .onHover { if $0 { model.pointMatch(at: i) } }
-                .onTapGesture { model.resumeMatch(i) }
-            }
-            .padding(.bottom, 4)
-        }
-    }
-}
 
 /// a section's name over its rows, lined up with their names, and what enter does there
 struct SectionLabel: View {
     let title: String
     let hint: String
-    let theme: PaletteTheme
+    let theme: AppTheme
     var trailing: String?
 
     var body: some View {
         HStack(spacing: 10) {
             Text(theme.say(title))
-            Text(theme.say(hint)).foregroundStyle(theme.textMuted.opacity(0.55))
+            if !hint.isEmpty { Text(theme.say(hint)).foregroundStyle(theme.textMuted.opacity(0.55)) }
             Spacer()
             if let trailing { Text(theme.say(trailing)) }
         }
-        .font(.system(size: 11, weight: .medium))
+        .font(ClaudeFonts.sans(11, .medium))
         .foregroundStyle(theme.textMuted.opacity(0.85))
-        .padding(.leading, PaletteView.barHeight)
+        .padding(.leading, 20)
         .padding(.trailing, 20)
         .frame(height: 26, alignment: .bottom)
         .padding(.bottom, 2)
@@ -693,6 +699,31 @@ enum Ago {
     }
 }
 
+/// the light behind the lit row, one shape that glides between rows when a namespace is given
+struct LitRow: View {
+    let theme: AppTheme
+    @Environment(\.litNamespace) private var namespace
+
+    var body: some View {
+        if let namespace {
+            RoundedRectangle(cornerRadius: 8).fill(theme.rowSelected).matchedGeometryEffect(id: "lit", in: namespace)
+        } else {
+            RoundedRectangle(cornerRadius: 8).fill(theme.rowSelected)
+        }
+    }
+}
+
+private struct LitNamespaceKey: EnvironmentKey {
+    static let defaultValue: Namespace.ID? = nil
+}
+
+extension EnvironmentValues {
+    var litNamespace: Namespace.ID? {
+        get { self[LitNamespaceKey.self] }
+        set { self[LitNamespaceKey.self] = newValue }
+    }
+}
+
 extension Notification.Name {
-    static let paletteDidShow = Notification.Name("paletteDidShow")
+    static let windowDidShow = Notification.Name("windowDidShow")
 }
