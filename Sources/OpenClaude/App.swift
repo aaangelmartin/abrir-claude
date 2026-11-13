@@ -28,8 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let palette = PaletteController()
         self.palette = palette
         // on key down, as claude's own quick entry: it opens while the key is still going down
-        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak palette] in
-            MainActor.assumeIsolated { palette?.hotkey() }
+        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak palette, weak self] in
+            MainActor.assumeIsolated {
+                // while the setup is open the shortcut answers there (its caps, then the palette)
+                if let onboarding = self?.onboarding, onboarding.isVisible { onboarding.hotkey() } else { palette?.hotkey() }
+            }
         }
 
         palette.onSetup = { [weak self] in self?.onboarding.show() }

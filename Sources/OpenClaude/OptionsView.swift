@@ -165,7 +165,7 @@ struct KeyCap: View {
 
     var body: some View {
         Text(key)
-            .font(.system(size: 10.5, weight: .medium))
+            .font(ClaudeFonts.sans(10.5, .medium))
             .foregroundStyle(theme.textSecondary)
             .padding(.horizontal, 5)
             .frame(minWidth: 18, minHeight: 18)
@@ -261,7 +261,7 @@ private struct DefaultMark: View {
     let theme: PaletteTheme
     var body: some View {
         Text(theme.say("default"))
-            .font(.system(size: 9.5, weight: .medium))
+            .font(ClaudeFonts.sans(9.5, .medium))
             .foregroundStyle(theme.textMuted.opacity(0.85))
     }
 }

@@ -2,17 +2,43 @@ import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
+/// which keys are down while the setup is open, so its key caps can answer them
+@MainActor
+final class KeyPress: ObservableObject {
+    @Published var modifiers: NSEvent.ModifierFlags = []
+    /// the whole shortcut just went down
+    @Published var shortcut = false
+}
+
 /// the first-run window, in the palette's own look: what the app does, a check of what it needs,
 /// the shortcut, and off you go. ⌘, in the palette opens it again.
 @MainActor
 final class OnboardingController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var monitor: Any?
+    private let keys = KeyPress()
+    /// the step shown, so the shortcut on the last one can finish
+    private let state = OnboardingState()
     /// called when it is done (or closed): the palette opens
     var onFinish: () -> Void = {}
 
+    var isVisible: Bool { window?.isVisible == true }
+
+    /// the shortcut pressed while the setup is open: its caps go down, and on the last step it opens
+    /// the palette
+    func hotkey() {
+        keys.shortcut = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak self] in
+            guard let self else { return }
+            keys.shortcut = false
+            if state.step == .done { finish() }
+        }
+    }
+
     func show() {
         if let window { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-        let view = OnboardingView(finish: { [weak self] in self?.finish() })
+        let view = OnboardingView(finish: { [weak self] in self?.finish() }, state: state)
+            .environmentObject(keys)
         let hosting = NSHostingView(rootView: view)
         hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
         let window = KeyWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
@@ -29,9 +55,15 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         self.window = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.keys.modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            return event
+        }
     }
 
     private func finish() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
         window?.orderOut(nil)
         window = nil
         UserDefaults.standard.set(true, forKey: Self.doneKey)
@@ -49,11 +81,30 @@ private final class KeyWindow: NSWindow {
     override var canBecomeKey: Bool { true }
 }
 
+/// the step the setup is on, shared with its window
+@MainActor
+final class OnboardingState: ObservableObject {
+    @Published var step: OnboardingView.Step
+
+    init(step: OnboardingView.Step = .welcome) { self.step = step }
+}
+
 struct OnboardingView: View {
     enum Step: Int, CaseIterable { case welcome, checks, shortcut, done }
 
     var finish: () -> Void = {}
-    @State var step: Step = .welcome
+    @ObservedObject var state: OnboardingState
+    private var step: Step { state.step }
+
+    init(finish: @escaping () -> Void = {}, state: OnboardingState = OnboardingState()) {
+        self.finish = finish
+        self.state = state
+    }
+
+    /// for previews and snapshots: one step, nothing to finish
+    init(step: Step) {
+        self.init(state: OnboardingState(step: step))
+    }
     private let theme = PaletteTheme.current
 
     var body: some View {
@@ -109,7 +160,7 @@ struct OnboardingView: View {
     }
 
     private func move(_ by: Int) {
-        if let next = Step(rawValue: step.rawValue + by) { step = next }
+        if let next = Step(rawValue: step.rawValue + by) { state.step = next }
     }
 }
 
@@ -122,7 +173,7 @@ private struct StepTitle: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(theme.say(title)).font(.system(size: 22, weight: .semibold)).foregroundStyle(theme.text)
+            Text(theme.say(title)).font(ClaudeFonts.display(28)).foregroundStyle(theme.text)
             Text(theme.say(line)).font(theme.row).foregroundStyle(theme.textSecondary)
         }
     }
@@ -142,7 +193,16 @@ private struct WelcomeStep: View {
                 feature("folder", "Any folder", "Type a folder to start a new session there, or to resume one of its past ones.")
                 feature("slider.horizontal.3", "Your way", "Model, effort and permissions, right before a session starts.")
             }
+            Spacer(minLength: 0)
+            // who made it, in the aaangelmartin wordmark
+            HStack(spacing: 7) {
+                Text(theme.say("Made by")).font(theme.label).foregroundStyle(theme.textMuted.opacity(0.7))
+                Signature().frame(height: 10)
+            }
+            .padding(.leading, 48)
+            .padding(.bottom, 4)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func feature(_ icon: String, _ title: String, _ line: String) -> some View {
@@ -254,24 +314,42 @@ private struct ShortcutStep: View {
 
 private struct DoneStep: View {
     let theme: PaletteTheme
+    @EnvironmentObject private var keys: KeyPress
+
+    /// a cap is down while its modifier is held, or with the whole shortcut
+    private func isDown(_ key: String) -> Bool {
+        if keys.shortcut { return true }
+        switch key {
+        case "⌘": return keys.modifiers.contains(.command)
+        case "⌥": return keys.modifiers.contains(.option)
+        case "⌃": return keys.modifiers.contains(.control)
+        case "⇧": return keys.modifiers.contains(.shift)
+        default: return false
+        }
+    }
 
     var body: some View {
         VStack(spacing: 22) {
             Spacer(minLength: 10)
             ClaudeMark(color: theme.mark).frame(width: 38, height: 38)
-            Text(theme.say("You're set")).font(.system(size: 22, weight: .semibold)).foregroundStyle(theme.text)
-            HStack(spacing: 6) {
+            Text(theme.say("You're set")).font(ClaudeFonts.display(30)).foregroundStyle(theme.text)
+            HStack(spacing: 8) {
                 ForEach(Array(shortcutKeys.enumerated()), id: \.offset) { _, key in
+                    let down = isDown(key)
                     Text(key)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(theme.text)
-                        .frame(minWidth: 40, minHeight: 40)
+                        .font(ClaudeFonts.sans(18, .medium))
+                        .foregroundStyle(down ? Color.white : theme.text)
+                        .frame(minWidth: 44, minHeight: 44)
                         .padding(.horizontal, 6)
-                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5))
+                        .background(down ? theme.brandFill.opacity(0.85) : Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(down ? theme.brandFillHover : Color.white.opacity(0.1), lineWidth: down ? 1 : 0.5))
+                        .shadow(color: .black.opacity(down ? 0 : 0.35), radius: down ? 0 : 1.5, y: down ? 0 : 2)
+                        .scaleEffect(down ? 0.94 : 1)
+                        .offset(y: down ? 1.5 : 0)
+                        .animation(.easeOut(duration: 0.08), value: down)
                 }
             }
-            Text(theme.say("Press it anywhere. ⌘, in the palette brings this back."))
+            Text(theme.say("Press it now, or anywhere later. ⌘, in the palette brings this back."))
                 .font(theme.row)
                 .foregroundStyle(theme.textSecondary)
             Spacer(minLength: 10)

@@ -87,7 +87,7 @@ By default it copies **Claude's quick entry** (⌥Space in the desktop app). The
 
 Folders use Claude's dark tokens: text `#C2C0B6`, icons `#9C9A92`, and white at 9 % for the highlighted row.
 
-Anthropic Sans is loaded at launch from `/Applications/Claude.app`; it is not copied into this project. Without the Claude app the system font is used.
+Anthropic Sans (the interface) and Anthropic Serif (the setup's headings, as Claude sets its large headings) are loaded at launch from `/Applications/Claude.app`; they are not copied into this project. Without the Claude app the system fonts are used.
 
 The **laaabs.** style uses the same bar in black, with Outfit and a cyan caret. To switch:
 
@@ -103,7 +103,9 @@ The first launch opens a short setup, in the palette's own look, and **⌘,** in
 1. **Welcome**: what the palette does.
 2. **Check your setup**: Claude Code installed (and its version), permission to control Terminal (with a button to ask for it), Claude Code signed in (needed for the plan's use; only its presence is checked), the Claude app (for its font), and start at login, which can be switched here.
 3. **Your shortcut**: a recorder to pick it; ⌥C by default.
-4. **You're set**: the shortcut on its key caps, and the palette.
+4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there opens the palette.
+
+The welcome is signed with the aaangelmartin wordmark.
 
 ## Install
 

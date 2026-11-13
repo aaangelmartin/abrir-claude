@@ -143,7 +143,20 @@ struct PaletteTheme {
 /// anthropic sans, registered for this process from the installed claude app.
 enum ClaudeFonts {
     private static let folder = "/Applications/Claude.app/Contents/Resources/fonts"
-    private static let files = ["AnthropicSans-Romans-Variable-25x258.ttf"]
+    private static let files = ["AnthropicSans-Romans-Variable-25x258.ttf", "AnthropicSerif-Romans-Variable-25x258.ttf"]
+
+    /// anthropic sans at any size, as claude sets its interface; the system font without it
+    static func sans(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        NSFont(name: "Anthropic Sans", size: size) != nil || register()
+            ? .custom("Anthropic Sans", size: size).weight(weight)
+            : .system(size: size, weight: weight)
+    }
+
+    /// anthropic serif's display cut, as claude sets its large headings; the system serif without it
+    static func display(_ size: CGFloat) -> Font {
+        let name = "AnthropicSerifVariable-DisplayRegular"
+        return NSFont(name: name, size: size) != nil ? .custom(name, size: size) : .system(size: size, design: .serif)
+    }
 
     static func register() -> Bool {
         var ok = true

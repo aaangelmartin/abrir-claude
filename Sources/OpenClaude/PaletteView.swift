@@ -657,7 +657,7 @@ struct SectionLabel: View {
             Spacer()
             if let trailing { Text(theme.say(trailing)) }
         }
-        .font(.system(size: 11, weight: .medium))
+        .font(ClaudeFonts.sans(11, .medium))
         .foregroundStyle(theme.textMuted.opacity(0.85))
         .padding(.leading, 20)
         .padding(.trailing, 20)

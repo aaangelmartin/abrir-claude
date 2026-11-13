@@ -29,7 +29,7 @@ import Testing
 
     private func onboarding(_ name: String, _ step: OnboardingView.Step) {
         guard let dir else { return }
-        let view = NSHostingView(rootView: OnboardingView(step: step).environment(\.colorScheme, .dark))
+        let view = NSHostingView(rootView: OnboardingView(step: step).environmentObject(KeyPress()).environment(\.colorScheme, .dark))
         view.appearance = NSAppearance(named: .darkAqua)
         let size = view.fittingSize
         view.frame = NSRect(origin: .zero, size: size)
