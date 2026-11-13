@@ -27,9 +27,9 @@ At the bottom, one line says how Claude will be launched: **Model · Effort · P
 
 | Row | Control | `claude` flag |
 |---|---|---|
-| Model | full-width segmented control: Default, Fable, Opus, Sonnet, Haiku, each with its number (Opus 5.5). The number is read from the installed `claude` itself, so it updates on its own when Claude Code updates | `--model` with the alias (`opus`), which always runs the newest |
-| Effort | an **Auto** pill and a track with the five real levels, Faster to Smarter: low, medium, high, xhigh, max. The ball carries a dot of the level's colour and glows in it; dragged, it follows the pointer and settles on the nearest level. On Auto the track steps back and a hollow ball marks the level Claude will use, "medium · default" | `--effort` |
-| Permissions | the modes Claude's Code view offers, in its order: Default, Manual, Accept edits, Plan, Auto, Bypass. The picked one is tinted in its colour; hover a mode to see what it does | `--permission-mode` |
+| Model | full-width segmented control: Fable, Opus, Sonnet, Haiku, each with its number (Opus 5.5), read from the installed `claude` so it updates on its own. The model Claude starts with (your settings' model, or Opus) is marked *default* | `--model` with the alias (`opus`), which always runs the newest |
+| Effort | a track with the five levels, Faster to Smarter: low, medium, high, xhigh, max. The level the chosen model starts with is marked *default* (medium for Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable 5.2), read from the model table inside `claude`; the ball sits there until you pick another. The ball carries a dot of the level's colour and glows in it; dragged, it follows the pointer and settles on the nearest level | `--effort` |
+| Permissions | the modes Claude's Code view offers, in its order: Manual, Accept edits, Plan, Auto, Bypass. The mode your settings choose is marked *default*. The picked one is tinted in its colour; hover a mode to see what it does | `--permission-mode` |
 | Session | segmented control: New, Continue, Resume | `--continue`, `--resume` |
 
 The colours come from the dark theme table inside `claude` itself:
@@ -49,11 +49,11 @@ The colours come from the dark theme table inside `claude` itself:
 
 Keys in the options:
 - **↑ ↓** move between rows, and **↑** from the first goes back to the folders.
-- **← →** change the value. On effort, **←** from low goes back to Auto.
+- **← →** change the value.
 - **esc** folds the options; a second **esc** closes the palette.
 - **↵** or **⌥C** launch Claude.
 
-Default and Auto add nothing to the command, so Claude's own defaults and your settings apply. Picks are remembered, by name, so reordering values never changes what was picked.
+There is no separate "default" value: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Picks are remembered, by name, so reordering values never changes what was picked.
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. That is why opening and folding the options is smooth: the rows come in one after another.
 

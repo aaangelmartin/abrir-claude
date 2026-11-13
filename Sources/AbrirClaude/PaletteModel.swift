@@ -131,20 +131,48 @@ final class PaletteModel: ObservableObject {
         return choice.label + " " + number
     }
 
-    func choice(of option: Int) -> Choice {
+    /// the value an option stands at, as shown: for an option whose default is marked rather than
+    /// offered, the value its default amounts to
+    func shown(_ option: Int) -> Int {
+        let pick = picks[option]
+        return pick == 0 && LaunchOptions.all[option].defaultIsMarked ? defaultValue(of: option) : pick
+    }
+
+    func choice(of option: Int) -> Choice { LaunchOptions.all[option].choices[shown(option)] }
+
+    /// the value claude starts with when this option adds no flag: the settings' model (opus when they
+    /// name none), the effort that model ships with, the settings' permission mode (manual when none)
+    func defaultValue(of option: Int) -> Int {
         let o = LaunchOptions.all[option]
-        return o.choices[o.choices.indices.contains(picks[option]) ? picks[option] : 0]
+        guard o.defaultIsMarked else { return 0 }
+        func index(_ label: String?) -> Int? { label.flatMap { l in o.choices.firstIndex { $0.label == l } } }
+        switch option {
+        case LaunchOptions.model:
+            return index(LaunchOptions.settingsDefault(of: option)) ?? index("Opus") ?? 1
+        case LaunchOptions.effort:
+            let family = choice(of: LaunchOptions.model).args.last ?? "opus"
+            return index(modelVersions["effort." + family]) ?? index("medium") ?? 1
+        default:
+            return index(LaunchOptions.settingsDefault(of: option)) ?? 1
+        }
+    }
+
+    /// pick a value as shown: picking the default value stores "no flag", so it keeps following claude
+    func pickShown(_ value: Int, of option: Int) {
+        let o = LaunchOptions.all[option]
+        pick(o.defaultIsMarked && value == defaultValue(of: option) ? 0 : value, of: option)
     }
 
     /// ← → on an option: the value before or after, stopping at the ends
     func step(_ option: Int, by delta: Int) {
-        let count = LaunchOptions.all[option].choices.count
-        pick(min(max(picks[option] + delta, 0), count - 1), of: option)
+        let o = LaunchOptions.all[option]
+        let first = o.defaultIsMarked ? 1 : 0
+        pickShown(min(max(shown(option) + delta, first), o.choices.count - 1), of: option)
     }
 
     func pick(_ value: Int, of option: Int) {
         guard LaunchOptions.all[option].choices.indices.contains(value), picks[option] != value else { return }
-        lastDelta = value > picks[option] ? 1 : -1
+        lastDelta = value > shown(option) ? 1 : -1
         picks[option] = value
         LaunchOptions.save(picks)
     }

@@ -57,6 +57,9 @@ struct LaunchOption: Identifiable, Sendable {
     let id: String
     let title: String
     let style: OptionStyle
+    /// the first value adds no flag. when true it is not offered as a value of its own: the value it
+    /// amounts to (the model's default effort, the settings' mode) is marked "default" instead
+    var defaultIsMarked = true
     let choices: [Choice]
 }
 
@@ -77,7 +80,7 @@ enum LaunchOptions {
         // the levels and colours of claude code's /effort slider. auto adds no flag: claude picks
         // its own default, medium
         LaunchOption(id: "effort", title: "Effort", style: .slider, choices: [
-            Choice(label: "auto", args: [], paint: .plain(CC.inactive)),
+            Choice(label: "default", args: [], paint: .plain(CC.inactive)),
             Choice(label: "low", args: ["--effort", "low"], paint: .plain(CC.warning)),
             Choice(label: "medium", args: ["--effort", "medium"], paint: .plain(CC.success)),
             Choice(label: "high", args: ["--effort", "high"], paint: .plain(CC.permission)),
@@ -94,7 +97,7 @@ enum LaunchOptions {
             Choice(label: "Auto", args: ["--permission-mode", "auto"], symbol: "⏵⏵", paint: .plain(CC.warning), detail: "Decides on its own what is safe"),
             Choice(label: "Bypass", args: ["--permission-mode", "bypassPermissions"], symbol: "⏵⏵", paint: .plain(CC.error), detail: "Bypasses every permission check"),
         ]),
-        LaunchOption(id: "session", title: "Session", style: .segments, choices: [
+        LaunchOption(id: "session", title: "Session", style: .segments, defaultIsMarked: false, choices: [
             Choice(label: "New", args: [], icon: "plus"),
             Choice(label: "Continue", args: ["--continue"], icon: "arrow.uturn.forward"),
             Choice(label: "Resume", args: ["--resume"], icon: "clock.arrow.circlepath"),
@@ -126,7 +129,7 @@ enum LaunchOptions {
     /// labels from the spanish interface, so picks made before still load
     private static let renamed = [
         "Por defecto": "Default", "Aceptar ediciones": "Accept edits", "Saltar permisos": "Bypass",
-        "Nueva": "New", "Continuar": "Continue", "Elegir": "Resume",
+        "Nueva": "New", "Continuar": "Continue", "Elegir": "Resume", "auto": "default",
     ]
 
     static func save(_ picks: [Int], _ defaults: UserDefaults = .standard) {
@@ -151,8 +154,9 @@ enum LaunchOptions {
             guard let m = settings.model else { return nil }
             return all[model].choices.first { $0.args.last == m }?.label ?? m
         case effort:
-            // claude's own default; an effortLevel in the settings is not what a new session starts with
-            return "medium"
+            // each model has its own (ModelVersions reads it); the settings' effortLevel is a legacy
+            // value claude no longer starts sessions with
+            return nil
         case permissions:
             guard let mode = settings.mode else { return nil }
             return all[permissions].choices.first { $0.args.last == mode }?.label

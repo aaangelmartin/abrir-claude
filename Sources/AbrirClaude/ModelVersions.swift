@@ -1,12 +1,12 @@
 import Foundation
 
-/// the number of the newest model of each family ("opus" → "5.5"), read from the installed `claude`
-/// itself, so the palette shows what `--model opus` runs today and follows every claude update without
-/// a change here. the result is kept per claude binary (its path names its version), so the binary is
+/// the number of the newest model of each family ("opus" → "5.5") and the effort that model starts
+/// with ("effort.opus" → "medium"), read from the installed `claude` itself, so the palette shows what
+/// `--model opus` runs today and follows every claude update without a change here. the result is kept per claude binary (its path names its version), so the binary is
 /// read again only after claude updates.
 enum ModelVersions {
     static let families = ["fable", "opus", "sonnet", "haiku"]
-    private static let cacheKey = "modelVersions"
+    private static let cacheKey = "modelCatalog"
 
     /// where claude is installed, symlinks resolved. the app starts without a shell PATH, so the usual
     /// places are tried in turn.
@@ -67,6 +67,60 @@ enum ModelVersions {
                 best[family] = (major, minor)
             }
         }
-        return best.mapValues { $0.1 == 0 ? "\($0.0)" : "\($0.0).\($0.1)" }
+        var result = best.mapValues { $0.1 == 0 ? "\($0.0)" : "\($0.0).\($0.1)" }
+        let efforts = defaultEfforts(in: data)
+        for (family, (major, minor)) in best {
+            let id = "claude-\(family)-\(major)" + (minor == 0 ? "" : "-\(minor)")
+            if let effort = efforts[id] { result["effort." + family] = effort }
+        }
+        return result
+    }
+
+    /// claude's model table gives each model a default_effort. each one belongs to the model id named
+    /// last before it (as id:"claude-opus-5-5", model:..., name:...); the most common answer wins.
+    static func defaultEfforts(in data: Data) -> [String: String] {
+        let levels: Set<String> = ["low", "medium", "high", "xhigh", "max"]
+        var ids: [(Int, String)] = []
+        var efforts: [(Int, String)] = []
+        data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+            guard let base = raw.baseAddress else { return }
+            let bytes = raw.bindMemory(to: UInt8.self)
+            func word(from: Int, allowed: (UInt8) -> Bool) -> String? {
+                var j = from
+                while j < raw.count, allowed(bytes[j]), j - from < 40 { j += 1 }
+                return j > from ? String(bytes: bytes[from..<j], encoding: .ascii) : nil
+            }
+            // ids that are the value of a key: id:"claude-…"
+            let idMarker = Array(":\"claude-".utf8)
+            var at = 0
+            while at < raw.count, let hit = memmem(base + at, raw.count - at, idMarker, idMarker.count) {
+                let pos = base.distance(to: UnsafeRawPointer(hit))
+                at = pos + idMarker.count
+                var k = pos - 1
+                while k >= 0, (bytes[k] >= 97 && bytes[k] <= 122) || bytes[k] == 95 { k -= 1 }
+                guard let key = String(bytes: bytes[(k + 1)..<pos], encoding: .ascii),
+                      ["id", "model", "name", "model_id", "canonical_id"].contains(key),
+                      let id = word(from: pos + 2, allowed: { ($0 >= 97 && $0 <= 122) || ($0 >= 48 && $0 <= 57) || $0 == 45 })
+                else { continue }
+                ids.append((pos, id))
+            }
+            let effortMarker = Array("default_effort:\"".utf8)
+            at = 0
+            while at < raw.count, let hit = memmem(base + at, raw.count - at, effortMarker, effortMarker.count) {
+                let pos = base.distance(to: UnsafeRawPointer(hit))
+                at = pos + effortMarker.count
+                if let level = word(from: at, allowed: { $0 >= 97 && $0 <= 122 }), levels.contains(level) {
+                    efforts.append((pos, level))
+                }
+            }
+        }
+        var tally: [String: [String: Int]] = [:]
+        var i = 0
+        for (pos, level) in efforts {
+            while i + 1 < ids.count, ids[i + 1].0 < pos { i += 1 }
+            guard i < ids.count, ids[i].0 < pos, pos - ids[i].0 < 6000 else { continue }
+            tally[ids[i].1, default: [:]][level, default: 0] += 1
+        }
+        return tally.compactMapValues { $0.max { $0.value < $1.value }?.key }
     }
 }

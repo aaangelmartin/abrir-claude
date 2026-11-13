@@ -34,5 +34,6 @@ import Testing
     @Test func optionsMax() { shot("5-max") { m in m.reset(); m.pick(5, of: 1); m.pick(2, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down) } }
     @Test func optionsPermissions() { shot("7-permissions") { m in m.reset(); m.pick(1, of: 0); m.pick(4, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
     @Test func optionsBypass() { shot("8-bypass") { m in m.reset(); m.pick(0, of: 1); m.pick(5, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
+    @Test func optionsAllDefaultOpen() { shot("9-defaults-open") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) }; _ = m.handle(.jumpDown) } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) } } }
 }

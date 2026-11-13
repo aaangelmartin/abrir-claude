@@ -134,7 +134,14 @@ import Testing
     @Test func keepsTheNewestOfEachFamily() {
         let text = "x claude-opus-4-8 y claude-opus-5-5 claude-opus-5 claude-sonnet-4-5-20250929 claude-sonnet-5-5 claude-haiku-4-5-20251001 claude-fable-5-1 claude-fable-5-2 claude-fable-5 claude-3-5-sonnet"
         let v = ModelVersions.newest(in: Data(text.utf8))
-        #expect(v == ["opus": "5.5", "sonnet": "5.5", "haiku": "4.5", "fable": "5.2"])
+        #expect(v.filter { !$0.key.hasPrefix("effort.") } == ["opus": "5.5", "sonnet": "5.5", "haiku": "4.5", "fable": "5.2"])
+    }
+
+    @Test func eachModelGetsTheEffortItsTableGives() {
+        let text = #"{id:"claude-opus-5",x:1,default_effort:"high"},{id:"claude-opus-5-5",caps:["a"],default_effort:"medium"},{id:"claude-opus-5-5",default_effort:"medium"}"#
+        let v = ModelVersions.newest(in: Data(text.utf8))
+        #expect(v["opus"] == "5.5")
+        #expect(v["effort.opus"] == "medium")
     }
 
     @Test func aWholeNumberHasNoDot() {
@@ -153,6 +160,28 @@ import Testing
         let start = Date()
         let found = ModelVersions.scan(binary)
         print("model versions:", found, "in", Date().timeIntervalSince(start), "s")
-        #expect(Set(found.keys) == Set(ModelVersions.families))
+        #expect(Set(found.keys.filter { !$0.hasPrefix("effort.") }) == Set(ModelVersions.families))
+        #expect(found["effort.opus"] != nil)
+    }
+}
+
+@MainActor
+@Suite struct MarkedDefaultTests {
+    @Test func pickingTheDefaultLevelAddsNoFlag() {
+        let m = PaletteModel()
+        m.pick(0, of: LaunchOptions.effort)
+        let def = m.defaultValue(of: LaunchOptions.effort)
+        #expect(m.shown(LaunchOptions.effort) == def)
+        m.step(LaunchOptions.effort, by: 1)
+        #expect(m.picks[LaunchOptions.effort] == def + 1)
+        m.step(LaunchOptions.effort, by: -1)
+        #expect(m.picks[LaunchOptions.effort] == 0)
+    }
+
+    @Test func stepsNeverReachTheHiddenDefault() {
+        let m = PaletteModel()
+        m.pick(1, of: LaunchOptions.effort)
+        m.step(LaunchOptions.effort, by: -1)
+        #expect(m.shown(LaunchOptions.effort) == 1)
     }
 }
