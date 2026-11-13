@@ -29,9 +29,16 @@ struct PaletteView: View {
             if model.sessionsFolder != nil {
                 divider
                 SessionList(model: model, theme: theme)
-            } else if !model.rows.isEmpty {
-                divider
-                rowsView
+            } else {
+                let active = model.shownLive
+                if !active.isEmpty {
+                    divider
+                    ActiveList(model: model, sessions: active, theme: theme)
+                }
+                if !model.rows.isEmpty {
+                    if active.isEmpty { divider }
+                    rowsView
+                }
             }
 
             divider
@@ -80,9 +87,9 @@ struct PaletteView: View {
 
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if model.showingRecents {
+            if model.showingRecents || !model.shownLive.isEmpty {
                 // lined up with the folder names, close to the rows it names
-                Text(theme.say("Recent"))
+                Text(theme.say(model.showingRecents ? "Recent" : "Folders"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(theme.textMuted.opacity(0.85))
                     .padding(.leading, Self.barHeight)
@@ -107,6 +114,7 @@ struct PaletteView: View {
                 switch notice {
                 case .notAllowed: Text(theme.say("Open Claude needs permission to control Terminal."))
                 case let .failed(message): Text(theme.say("Terminal did not respond: ") + message)
+                case let .windowNotFound(name): Text(theme.say("Could not find the window of \(name)."))
                 }
             }
             .font(theme.row)
@@ -327,7 +335,7 @@ private struct FolderRow: View {
                 }
                 .frame(maxWidth: 150, alignment: .trailing)
             }
-            Text(info.lastUsed.map { Ago.short($0) == "now" ? "just now" : Ago.short($0) + " ago" } ?? "")
+            Text(info.lastUsed.map { Ago.long($0) } ?? "")
                 .monospacedDigit()
                 .frame(width: 58, alignment: .trailing)
             Group {
@@ -474,8 +482,128 @@ private struct SessionList: View {
     }
 }
 
+/// the claude code sessions running now: a dot for what each is doing (working pulses, needing you is
+/// yellow), its name and folder, and the state with how long it has been in it. enter goes to it.
+private struct ActiveList: View {
+    @ObservedObject var model: PaletteModel
+    let sessions: [LiveSession]
+    let theme: PaletteTheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(theme.say("Active"))
+                Spacer()
+                if model.live.count > sessions.count, model.text.isEmpty {
+                    Text(theme.say("\(model.live.count - sessions.count) more, type to find them"))
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(theme.textMuted.opacity(0.85))
+            .padding(.leading, PaletteView.barHeight)
+            .padding(.trailing, 20)
+            .frame(height: 26, alignment: .bottom)
+            .padding(.bottom, 2)
+            VStack(spacing: 0) {
+                ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
+                    row(i, s)
+                }
+            }
+            .padding(.bottom, 4)
+        }
+    }
+
+    private func row(_ index: Int, _ s: LiveSession) -> some View {
+        let on = index == model.liveSelected
+        let folder = FolderPath.display(s.cwd)
+        return HStack(spacing: 0) {
+            StateDot(state: s.state)
+                .frame(width: PaletteView.barHeight - 16)
+                .padding(.trailing, 8)
+            Text(s.name)
+                .font(theme.row)
+                .foregroundStyle(on ? theme.text : theme.textRow)
+                .lineLimit(1)
+                .layoutPriority(1)
+            Text(folder.isEmpty ? "~" : folder)
+                .font(theme.label)
+                .foregroundStyle(theme.textMuted.opacity(0.8))
+                .lineLimit(1)
+                .truncationMode(.head)
+                .padding(.leading, 10)
+            Spacer(minLength: 12)
+            Text(Self.label(s))
+                .font(theme.label)
+                .foregroundStyle(Self.colour(s.state, theme))
+                .lineLimit(1)
+            Text(Ago.long(s.since))
+                .font(theme.label)
+                .monospacedDigit()
+                .foregroundStyle(theme.textMuted.opacity(0.8))
+                .frame(width: 58, alignment: .trailing)
+        }
+        .padding(.trailing, 12)
+        .frame(height: PaletteView.rowHeight)
+        .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 8)
+        .contentShape(Rectangle())
+        .onHover { if $0 { model.pointLive(at: index) } }
+        .onTapGesture { model.focusLive(index) }
+        .help("↵ go to it   ⌘↵ new session in \(folder.isEmpty ? "~" : folder)")
+    }
+
+    static func label(_ s: LiveSession) -> String {
+        switch s.state {
+        case .busy: "Working"
+        case .waiting: s.waitingFor.map { "Needs \($0)" } ?? "Needs you"
+        case .shell: "Running a command"
+        case .idle: "Idle"
+        }
+    }
+
+    static func colour(_ state: LiveSession.State, _ theme: PaletteTheme) -> Color {
+        switch state {
+        case .busy: Color(hex: 0xD97757)
+        case .waiting: Color(CC.warning)
+        case .shell: Color(CC.permission)
+        case .idle: theme.textMuted
+        }
+    }
+}
+
+/// a session's state as a dot: working pulses in clay, needing you is a steady yellow
+private struct StateDot: View {
+    let state: LiveSession.State
+
+    var body: some View {
+        let colour: Color = switch state {
+        case .busy: Color(hex: 0xD97757)
+        case .waiting: Color(CC.warning)
+        case .shell: Color(CC.permission)
+        case .idle: Color.white.opacity(0.28)
+        }
+        ZStack {
+            if state == .busy || state == .waiting {
+                TimelineView(.animation(minimumInterval: 1 / 30)) { context in
+                    let t = context.date.timeIntervalSinceReferenceDate
+                    let phase = (sin(t * (state == .busy ? 4 : 2)) + 1) / 2
+                    Circle().fill(colour.opacity(0.35 * (1 - phase))).frame(width: 8 + 8 * phase, height: 8 + 8 * phase)
+                }
+            }
+            Circle().fill(colour).frame(width: 8, height: 8)
+        }
+        .frame(width: 18, height: 18)
+    }
+}
+
 /// how long ago, as short as a list wants it: now, 5m, 3h, 2d, 3w, 4mo
 enum Ago {
+    /// for a column of its own: "just now", "5m ago"
+    static func long(_ date: Date, now: Date = Date()) -> String {
+        let s = short(date, now: now)
+        return s == "now" ? "just now" : s + " ago"
+    }
+
     static func short(_ date: Date, now: Date = Date()) -> String {
         let s = max(0, now.timeIntervalSince(date))
         switch s {

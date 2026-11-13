@@ -9,6 +9,8 @@ final class PaletteModel: ObservableObject {
         /// macOS said no to controlling terminal
         case notAllowed
         case failed(String)
+        /// a running session whose window could not be found
+        case windowNotFound(String)
     }
 
     enum Key {
@@ -53,6 +55,15 @@ final class PaletteModel: ObservableObject {
     @Published private(set) var sessionsFolder: String?
     /// the lit line in the sessions: 0 is a new session, then each session newest first
     @Published var sessionSelected = 0
+    /// claude code sessions running now on this mac, read again while the palette is open
+    @Published var live: [LiveSession] = []
+    /// the lit active session, when the arrows are on one (then no folder is lit)
+    @Published var liveSelected: Int?
+    /// asks the panel to bring a running session forward
+    var onFocus: (LiveSession) -> Void = { _ in }
+    /// at most this many active sessions are listed before anything is typed
+    static let liveLimit = 5
+
     /// whether the field's caret is at the end of what is typed (→ there opens a folder's sessions)
     var caretAtEnd: () -> Bool = { true }
 
@@ -70,7 +81,45 @@ final class PaletteModel: ObservableObject {
         return String(text[...slash])
     }
 
+    /// the active sessions listed now: the most urgent few with nothing typed, the matching ones while
+    /// a name is typed, none while a path is
+    var shownLive: [LiveSession] {
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        if typed.isEmpty { return Array(live.prefix(Self.liveLimit)) }
+        if typed.contains("/") || typed.hasPrefix("~") { return [] }
+        return live
+            .compactMap { s -> (LiveSession, Int)? in
+                let a = Fuzzy.score(typed, s.name), b = Fuzzy.score(typed, FolderPath.display(s.cwd))
+                guard let best = [a, b].compactMap({ $0 }).max() else { return nil }
+                return (s, best)
+            }
+            .sorted { $0.1 > $1.1 }
+            .prefix(Self.liveLimit)
+            .map(\.0)
+    }
+
+    func refreshLive() {
+        let now = LiveSessions.all()
+        if now != live { live = now }
+        if let i = liveSelected, i >= shownLive.count { liveSelected = shownLive.isEmpty ? nil : shownLive.count - 1 }
+    }
+
+    /// the pointer moved onto an active session
+    func pointLive(at index: Int) {
+        guard shownLive.indices.contains(index), liveSelected != index else { return }
+        selected = nil
+        liveSelected = index
+    }
+
+    func focusLive(_ index: Int) {
+        let list = shownLive
+        guard list.indices.contains(index) else { return }
+        onFocus(list[index])
+    }
+
     func reset() {
+        refreshLive()
+        liveSelected = nil
         refreshModelVersions()
         refreshProjects()
         sessionsFolder = nil
@@ -90,6 +139,7 @@ final class PaletteModel: ObservableObject {
     }
 
     func refreshRows() {
+        liveSelected = nil
         listID = UUID()
         let typed = text.trimmingCharacters(in: .whitespaces)
         if typed.isEmpty {
@@ -207,6 +257,7 @@ final class PaletteModel: ObservableObject {
     /// the pointer moved onto a row
     func point(at index: Int) {
         guard rows.indices.contains(index), selected != index else { return }
+        liveSelected = nil
         selectedByPointer = true
         selected = index
     }
@@ -313,10 +364,33 @@ final class PaletteModel: ObservableObject {
         return handleField(key)
     }
 
-    private func handleField(_ key: Key) -> Bool {
+    /// the arrows on an active session: up and down through them and on into the folders, enter goes
+    /// to it, ⌘↵ opens a new session in its folder
+    private func handleLive(_ key: Key, _ index: Int) -> Bool {
+        let count = shownLive.count
         switch key {
         case .down:
-            // the last row is the end: the options open with ⌥↓, not by running past the folders
+            if index < count - 1 { liveSelected = index + 1 } else if !rows.isEmpty { liveSelected = nil; selectedByPointer = false; selected = 0 }
+        case .up: liveSelected = index == 0 ? nil : index - 1
+        case .jumpUp: liveSelected = nil
+        case .jumpDown: if !rows.isEmpty { liveSelected = nil; selected = rows.count - 1 } else { liveSelected = count - 1 }
+        case .enter: focusLive(index)
+        case .openNew:
+            let s = shownLive[index]
+            onOpen(FolderPath.display(s.cwd), LaunchOptions.args(for: picks))
+        case .escape: close()
+        case .left, .right, .space: return false
+        case .tab, .optionsDown, .optionsUp: break
+        }
+        return true
+    }
+
+    private func handleField(_ key: Key) -> Bool {
+        if let liveSelected, shownLive.indices.contains(liveSelected) { return handleLive(key, liveSelected) }
+        switch key {
+        case .down:
+            // the active sessions come first, then the folders; the last row is the end
+            if selected == nil, !shownLive.isEmpty { liveSelected = 0; return true }
             guard !rows.isEmpty else { return true }
             selectedByPointer = false
             if let selected { self.selected = min(selected + 1, rows.count - 1) } else { selected = 0 }
@@ -324,7 +398,12 @@ final class PaletteModel: ObservableObject {
             // at the top already: stay there, never wrap round to the bottom
             guard !rows.isEmpty, let selected else { return true }
             selectedByPointer = false
-            self.selected = selected == 0 ? nil : selected - 1
+            if selected == 0, !shownLive.isEmpty {
+                self.selected = nil
+                liveSelected = shownLive.count - 1
+            } else {
+                self.selected = selected == 0 ? nil : selected - 1
+            }
         case .jumpDown: if !rows.isEmpty { selectedByPointer = false; selected = rows.count - 1 }
         case .jumpUp: selected = nil
         case .openNew: openNew()

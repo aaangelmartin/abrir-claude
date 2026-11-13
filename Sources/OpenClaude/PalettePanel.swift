@@ -49,6 +49,8 @@ final class PaletteController: NSObject, NSWindowDelegate {
     private let model = PaletteModel()
     private let hosting: NSHostingController<PaletteStage>
     private var keyMonitor: Any?
+    /// reads the active sessions again while the palette is open, so their states stay current
+    private var liveTimer: Timer?
     /// true while the code, not the user, moves the panel
     private var isPlacing = false
     private static let placeKey = "barTopLeft"
@@ -66,6 +68,7 @@ final class PaletteController: NSObject, NSWindowDelegate {
 
         model.onOpen = { [weak self] raw, args in self?.open(raw, args: args) }
         model.onClose = { [weak self] in self?.hide() }
+        model.onFocus = { [weak self] session in self?.focus(session) }
         model.caretAtEnd = { [panel] in
             guard let editor = panel.fieldEditor(false, for: nil) as? NSTextView else { return true }
             let range = editor.selectedRange()
@@ -86,11 +89,17 @@ final class PaletteController: NSObject, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil) // no fade: claude's quick entry just appears
         NotificationCenter.default.post(name: .paletteDidShow, object: nil)
         installKeyMonitor()
+        liveTimer?.invalidate()
+        liveTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.model.refreshLive() }
+        }
         // swiftui sets the editor up when the field takes focus: colour it once that has happened
         DispatchQueue.main.async { [panel] in PalettePanel.style(panel.fieldEditor(false, for: nil)) }
     }
 
     func hide() {
+        liveTimer?.invalidate()
+        liveTimer = nil
         removeKeyMonitor()
         panel.orderOut(nil)
     }
@@ -108,6 +117,15 @@ final class PaletteController: NSObject, NSWindowDelegate {
     }
 
     // MARK: opening
+
+    /// to a running session: its terminal tab or the app it runs in
+    private func focus(_ session: LiveSession) {
+        hide()
+        if !LiveSessions.focus(session) {
+            model.notice = .windowNotFound(session.name)
+            show(keepingNotice: true)
+        }
+    }
 
     private func open(_ raw: String, args: [String]) {
         hide() // out of the way of macOS's permission prompt, and of terminal

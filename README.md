@@ -12,6 +12,15 @@ A global shortcut (⌥C) opens a palette that asks which folder to open Claude C
 | `/Volumes/disk/work` | that absolute path |
 | a folder that does not exist | Terminal shows the `cd` error and claude does not start |
 
+### Active sessions
+
+With nothing typed, the palette first lists the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows a dot and a word for what it is doing: **Working** (pulsing clay), **Needs permission** or **Needs you** (yellow), **Running a command** (lavender) or **Idle** (grey), with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
+
+- **↵** goes to the session: its Terminal tab is brought forward, or the app it runs in when it is not in Terminal.
+- **⌘↵** opens a new session in that session's folder.
+
+Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
+
 ### Projects
 
 With nothing typed, the palette lists the folders used last, here or in Claude Code itself (from its sessions in `~/.claude/projects`), newest first. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
@@ -137,6 +146,7 @@ Sources/OpenClaude/
   Suggestions.swift    folder completion and recents
   Projects.swift       known projects, claude's sessions, git branches and fuzzy matching
   Usage.swift          the plan's session and weekly use
+  LiveSessions.swift   the claude sessions running now, their state, and bringing one forward
   Terminal.swift       the AppleScript that opens the Terminal window
   LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
   ModelVersions.swift  the newest model numbers, read from the installed claude

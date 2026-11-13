@@ -43,6 +43,17 @@ import Testing
             home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date().addingTimeInterval(-86_400 * 2)),
         ]
     }
+    @Test func active() { shot("13-active") { m in
+        m.reset(); m.projects = Self.sample()
+        let now = Date()
+        m.live = [
+            LiveSession(pid: 1, sessionId: "a", cwd: FolderPath.home + "/Desktop/laaabs", name: "Brain & Ranking", state: .waiting, waitingFor: "permission", since: now.addingTimeInterval(-40)),
+            LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/open-claude", name: "open-claude-a1", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-300)),
+            LiveSession(pid: 3, sessionId: "c", cwd: FolderPath.home + "/Developer/Priv8", name: "priv8-f3", state: .shell, waitingFor: nil, since: now.addingTimeInterval(-90)),
+            LiveSession(pid: 4, sessionId: "d", cwd: FolderPath.home, name: "aaangel-62", state: .idle, waitingFor: nil, since: now.addingTimeInterval(-7200)),
+        ]
+        m.refreshRows(); m.liveSelected = 1
+    } }
     @Test func recents() { shot("12-recents") { m in m.reset(); m.projects = Self.sample(); m.refreshRows() } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
     @Test func sessions() { shot("11-sessions") { m in m.reset(); m.projects = Self.sample(); m.text = "abr"; m.openSessions(of: m.rows[0]); m.sessionSelected = 2 } }

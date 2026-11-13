@@ -252,3 +252,30 @@ import Testing
         #expect(Ago.short(now.addingTimeInterval(-86_400 * 3), now: now) == "3d")
     }
 }
+
+@Suite struct LiveSessionTests {
+    @Test func readsClaudesSessionRecord() {
+        let json = #"{"pid":29482,"sessionId":"e2","cwd":"/Users/x/laaabs","name":"Brain & Ranking","status":"waiting","waitingFor":"permission","statusUpdatedAt":1793993626577}"#
+        let s = LiveSessions.parse(Data(json.utf8))
+        #expect(s?.name == "Brain & Ranking")
+        #expect(s?.state == .waiting)
+        #expect(s?.waitingFor == "permission")
+    }
+
+    @Test func spareProcessesAreNotSessions() {
+        #expect(LiveSessions.parse(Data(#"{"pid":1,"sessionId":"a","cwd":"/","spare":true}"#.utf8)) == nil)
+    }
+}
+
+@MainActor
+@Suite struct ActiveNavigationTests {
+    @Test func downGoesThroughActiveThenFolders() {
+        let m = PaletteModel()
+        m.live = [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())]
+        m.text = ""
+        _ = m.handle(.down)
+        #expect(m.liveSelected == 0)
+        _ = m.handle(.up)
+        #expect(m.liveSelected == nil)
+    }
+}
