@@ -28,8 +28,8 @@ Abajo hay una línea que dice, en este orden, con qué se lanza Claude: **Modelo
 | Fila | Control | Opción de `claude` |
 |---|---|---|
 | Modelo | control segmentado a todo el ancho: Por defecto, Fable, Opus, Sonnet, Haiku, cada uno con su número (Opus 5.5). El número se lee del propio `claude` instalado, así que se actualiza solo cuando Claude Code se actualiza | `--model` con el alias (`opus`), que siempre lanza el último |
-| Esfuerzo | slider a todo el ancho, de Más rápido a Más listo: auto, low, medium, high, xhigh y max. La bola brilla en el color del nivel. En auto, un aro marca el nivel de tu `settings.json` ("auto · high"). En max sale "Uso alto", como en la app de Claude | `--effort` |
-| Permisos | todos los modos a la vista, en el orden del apartado Code de la app de Claude: Por defecto, Manual, Ediciones, Plan, Auto, No preguntar, Saltar. El elegido va en su color y debajo sale su símbolo y qué hace | `--permission-mode` |
+| Esfuerzo | una pastilla «auto» (usa el nivel de tu `settings.json`; la bola se queda hueca en ese nivel) y un carril con los cinco niveles reales, de Más rápido a Más listo: low, medium, high, xhigh y max. La bola lleva un punto del color del nivel y brilla en él; al arrastrar sigue al ratón y al soltar se coloca en el nivel más cercano | `--effort` |
+| Permisos | «Por defecto» aparte (lo que diga tu configuración) y dos grupos: **Te pregunta** (Manual, Plan) y **No te pregunta** (Ediciones, Auto, No preguntar, Saltar). El elegido se tiñe de su color y debajo sale su símbolo y qué hace | `--permission-mode` |
 | Sesión | control segmentado: Nueva, Continuar, Elegir | `--continue`, `--resume` |
 
 Los colores salen de la tabla del tema oscuro que lleva dentro el propio `claude`:
