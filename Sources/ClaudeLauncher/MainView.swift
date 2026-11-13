@@ -445,7 +445,11 @@ struct ClaudeMark: View {
     let color: Color
 
     private static let image: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "claude", withExtension: "svg"),
+        let bundled = Bundle.main.url(forResource: "claude", withExtension: "svg")
+        // running from the package (tests, the readme's images): the file next to the sources
+        let local = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("../../Resources/claude.svg").standardized
+        guard let url = bundled ?? (FileManager.default.fileExists(atPath: local.path) ? local : nil),
               let image = NSImage(contentsOf: url) else { return nil }
         image.isTemplate = true
         return image

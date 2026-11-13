@@ -10,6 +10,9 @@
 
 # Claude Launcher
 
+> [!NOTE]
+> **Unofficial, independent project.** Claude Launcher is made by Ángel Martín. It is not affiliated with, endorsed, sponsored or supported by Anthropic. Claude, Claude Code and Anthropic are trademarks of Anthropic, PBC.
+
 One shortcut for Claude Code on your Mac. Press **⌥C** anywhere to see every Claude Code session running right now and what it needs from you, or type a folder to start a new session there or resume one of its past ones.
 
 ![Running sessions](docs/running.png)
@@ -127,7 +130,7 @@ Remove it from System Settings → General → Login Items if it is still listed
 
 ## Legal
 
-Claude Launcher is an independent project. It is **not made, endorsed or supported by Anthropic**. "Claude", "Claude Code" and "Anthropic" are trademarks of Anthropic, PBC, used here only to say what this app works with.
+Claude Launcher is an unofficial, independent project by Ángel Martín. **I am not affiliated with Anthropic**, and this app is not made, endorsed, sponsored or supported by Anthropic in any way. "Claude", "Claude Code" and "Anthropic" are trademarks of Anthropic, PBC, used here only to say what this app works with. For help with Claude or Claude Code themselves, go to [Anthropic's support](https://support.anthropic.com), not to this project.
 
 - **Fonts**: Anthropic Sans and Anthropic Serif are Anthropic's typefaces. They are not in this repository or in the app; Claude Launcher loads them from your installed [Claude app](https://claude.ai/download) while it runs.
 - **The Claude mark** in the window and the icon is Anthropic's, and remains theirs.
