@@ -102,7 +102,8 @@ final class PaletteModel: ObservableObject {
             showingRecents = false
         }
         selectedByPointer = false
-        selected = Self.defaultSelection(text: text, rows: rows)
+        // nothing is lit until an arrow or the pointer lights it
+        selected = nil
     }
 
     // MARK: projects
@@ -128,8 +129,15 @@ final class PaletteModel: ObservableObject {
         projects[ProjectIndex.trimmed(FolderPath.resolve(row))]
     }
 
-    /// with nothing typed: the folders opened from here, newest first, as plain rows
-    private func recentRows() -> [String] { Recents.all }
+    /// with nothing typed: the folders used last, here or in claude, newest first
+    private func recentRows() -> [String] {
+        let known = projects.values
+            .filter { $0.lastUsed != nil }
+            .sorted { $0.lastUsed! > $1.lastUsed! }
+            .prefix(12)
+            .map { FolderPath.display($0.path) }
+        return known.isEmpty ? Recents.all : Array(known)
+    }
 
     /// a name typed, not a path: the home folder's own folders and every known project, matched
     /// fuzzily (letters in order, anywhere), the best first and the recently used a little ahead
@@ -187,17 +195,6 @@ final class PaletteModel: ObservableObject {
         case .right, .tab, .space: break
         }
         return true
-    }
-
-    /// what is lit before any key or pointer moves: the first match, so tab and enter take what is seen.
-    /// nothing when the field is empty (enter opens home) or when what is typed is already a folder whose
-    /// subfolders are listed (enter opens that folder, not one of them).
-    static func defaultSelection(text: String, rows: [String], home: String = FolderPath.home) -> Int? {
-        guard !text.trimmingCharacters(in: .whitespaces).isEmpty, let first = rows.first else { return nil }
-        let typed = FolderPath.resolve(text, home: home)
-        guard FolderPath.isDirectory(typed) else { return 0 }
-        // "Developer" typed and "Developer/" offered: the same folder, light it
-        return FolderPath.resolve(first, home: home).trimmingSlash == typed.trimmingSlash ? 0 : nil
     }
 
     /// what enter would open now
@@ -328,7 +325,7 @@ final class PaletteModel: ObservableObject {
             selectedByPointer = false
             self.selected = selected == 0 ? nil : selected - 1
         case .jumpDown: optionRow = 0
-        case .jumpUp: selected = Self.defaultSelection(text: text, rows: rows)
+        case .jumpUp: selected = nil
         case .tab: complete()
         case .enter: submit()
         case .escape: close()
@@ -366,7 +363,16 @@ final class PaletteModel: ObservableObject {
         text = rows[selected]
     }
 
-    func submit() { onOpen(target, LaunchOptions.args(for: picks)) }
+    /// enter: the lit row, or what is typed. a name that is no folder (typed to search) with nothing
+    /// lit opens nothing: a terminal with a cd error helps no one.
+    func submit() {
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        if selected == nil, !typed.isEmpty, !FolderPath.isDirectory(FolderPath.resolve(typed)) {
+            NSSound.beep()
+            return
+        }
+        onOpen(target, LaunchOptions.args(for: picks))
+    }
     func open(row: String) { onOpen(row, LaunchOptions.args(for: picks)) }
     func close() { onClose() }
 }

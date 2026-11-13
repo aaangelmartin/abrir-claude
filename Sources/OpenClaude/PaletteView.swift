@@ -81,12 +81,13 @@ struct PaletteView: View {
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if model.showingRecents {
+                // lined up with the folder names, close to the rows it names
                 Text(theme.say("Recent"))
-                    .font(theme.label)
-                    .foregroundStyle(theme.textMuted)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(theme.textMuted.opacity(0.85))
                     .padding(.leading, Self.barHeight)
-                    .padding(.top, 10)
-                    .padding(.bottom, 2)
+                    .frame(height: 26, alignment: .bottom)
+                    .padding(.bottom, -2)
             }
             FolderList(model: model, theme: theme)
                 // a new list (typing, tab) is a new scroll view: it always starts at the top, same margins
@@ -155,7 +156,7 @@ private struct FolderList: View {
                         FolderRow(
                             row: row, prefix: model.typedParent, theme: theme,
                             isSelected: index == model.selected,
-                            info: model.showingRecents ? nil : model.info(for: row),
+                            info: model.info(for: row),
                             openSessions: { model.openSessions(of: row) }
                         )
                         .id(index)
@@ -305,7 +306,7 @@ private struct FolderRow: View {
             Spacer(minLength: 12)
             if let info { meta(info) }
         }
-        .padding(.trailing, 10)
+        .padding(.trailing, 6)
         .frame(height: PaletteView.rowHeight)
         .background(
             isSelected ? theme.rowSelected : .clear,
@@ -315,29 +316,37 @@ private struct FolderRow: View {
         .contentShape(Rectangle())
     }
 
-    /// on the right: the branch, how long ago it was used, and its sessions (click, or → when lit)
+    /// on the right, in columns that line up from row to row: the branch, how long ago it was used,
+    /// and its sessions (click, or → when lit)
     private func meta(_ info: ProjectInfo) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             if let branch = info.branch {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5))
                     Text(branch).lineLimit(1).truncationMode(.middle)
                 }
-                .frame(maxWidth: 140, alignment: .trailing)
+                .frame(maxWidth: 150, alignment: .trailing)
             }
-            if let used = info.lastUsed { Text(Ago.short(used) == "now" ? "just now" : Ago.short(used) + " ago").monospacedDigit() }
-            if !info.sessions.isEmpty {
-                HStack(spacing: 3) {
-                    Text(info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions").monospacedDigit()
-                    Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
+            Text(info.lastUsed.map { Ago.short($0) == "now" ? "just now" : Ago.short($0) + " ago" } ?? "")
+                .monospacedDigit()
+                .frame(width: 58, alignment: .trailing)
+            Group {
+                if info.sessions.isEmpty {
+                    Color.clear
+                } else {
+                    HStack(spacing: 4) {
+                        Text(info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions").monospacedDigit()
+                        Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
+                    }
+                    .padding(.horizontal, 7)
+                    .frame(height: 22)
+                    .background(isSelected ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: openSessions)
+                    .help(isSelected ? "Sessions (→)" : "Sessions")
                 }
-                .padding(.horizontal, 6)
-                .frame(height: 20)
-                .background(isSelected ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 5))
-                .contentShape(Rectangle())
-                .onTapGesture(perform: openSessions)
-                .help(isSelected ? "Sessions (→)" : "Sessions")
             }
+            .frame(width: 92, alignment: .trailing)
         }
         .font(theme.label)
         .foregroundStyle(isSelected ? theme.textSecondary : theme.textMuted.opacity(0.8))

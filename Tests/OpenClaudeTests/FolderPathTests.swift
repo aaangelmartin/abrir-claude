@@ -67,29 +67,11 @@ import Testing
 }
 
 @MainActor
-@Suite struct DefaultSelectionTests {
-    let root: String = {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("open-claude-sel-\(UUID().uuidString)")
-        for sub in ["Developer/app", "Desktop"] {
-            try! FileManager.default.createDirectory(at: dir.appendingPathComponent(sub), withIntermediateDirectories: true)
-        }
-        return dir.path
-    }()
-
-    @Test func emptyLightsNothing() {
-        #expect(PaletteModel.defaultSelection(text: "", rows: ["Developer"], home: root) == nil)
-    }
-
-    @Test func partialLightsTheFirstMatch() {
-        #expect(PaletteModel.defaultSelection(text: "de", rows: ["Desktop/", "Developer/"], home: root) == 0)
-    }
-
-    @Test func existingFolderNameLightsItself() {
-        #expect(PaletteModel.defaultSelection(text: "Developer", rows: ["Developer/"], home: root) == 0)
-    }
-
-    @Test func existingFolderWithSubfoldersLightsNothing() {
-        #expect(PaletteModel.defaultSelection(text: "Developer/", rows: ["Developer/app/"], home: root) == nil)
+@Suite struct SelectionTests {
+    @Test func typingLightsNothing() {
+        let m = PaletteModel()
+        m.text = "Dev"
+        #expect(m.selected == nil)
     }
 }
 

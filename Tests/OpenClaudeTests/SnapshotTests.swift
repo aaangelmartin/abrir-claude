@@ -43,6 +43,7 @@ import Testing
             home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date().addingTimeInterval(-86_400 * 2)),
         ]
     }
+    @Test func recents() { shot("12-recents") { m in m.reset(); m.projects = Self.sample(); m.refreshRows() } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
     @Test func sessions() { shot("11-sessions") { m in m.reset(); m.projects = Self.sample(); m.text = "abr"; m.openSessions(of: m.rows[0]); m.sessionSelected = 2 } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) } } }
