@@ -6,7 +6,7 @@ A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each momen
 2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
 3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes.
 
-Model, effort and permissions sit at the bottom all the time, since a session can start from anywhere; **⌥↓**, or a click on a value, opens them. The plan's use sits beside them as two small meters.
+While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so only the plan's use shows there.
 
 **esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
@@ -35,7 +35,7 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right, as two small meters (the session and the week). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right: the session and the week, each as a small meter with its percentage and the time left until it resets. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
 The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
@@ -141,7 +141,7 @@ Sources/OpenClaude/
   LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
   ModelVersions.swift  the newest model numbers, read from the installed claude
   OptionsView.swift    the summary line, the rows, the effort slider and the painted text
-Resources/             Info.plist, entitlements, claude svg
+Resources/             Info.plist, entitlements, the claude mark and the aaangelmartin wordmark (svg)
 scripts/               install.sh, make-icon.swift
 Tests/                 paths, suggestions, selection, options and model versions (swift test)
                        SNAPSHOT_DIR=/path swift test --filter Snapshot renders the palette to png off screen

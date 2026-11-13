@@ -20,7 +20,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/OpenClaude" "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/"
-cp Resources/claude.svg "$APP/Contents/Resources/"
+cp Resources/claude.svg Resources/aaangelmartin.svg "$APP/Contents/Resources/"
 for b in "$BIN"/*.bundle; do cp -R "$b" "$APP/Contents/Resources/"; done
 
 echo "-> icon"

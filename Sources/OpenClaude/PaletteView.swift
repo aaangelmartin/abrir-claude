@@ -49,9 +49,21 @@ struct PaletteView: View {
                 StepList(model: model, theme: theme)
             }
 
-            // how a new session starts (⌥C can start one from anywhere) and the plan's use
-            divider
-            OptionsSection(model: model, theme: theme)
+            // how a session starts or resumes, where one does; the plan's use everywhere
+            if model.moment == .running {
+                if let usage = model.usage {
+                    divider
+                    HStack {
+                        Spacer()
+                        UsageLine(usage: usage, theme: theme)
+                    }
+                    .padding(.trailing, 20)
+                    .frame(height: 40)
+                }
+            } else {
+                divider
+                OptionsSection(model: model, theme: theme)
+            }
         }
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
@@ -82,10 +94,9 @@ struct PaletteView: View {
             .autocorrectionDisabled()
             .frame(height: 24)
             .padding(.trailing, 12)
-            // a quiet signature, in the brand's own type
-            Text("aaangelmartin")
-                .font(.outfit(11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.22))
+            // a quiet signature: the aaangelmartin wordmark, drawn from its own vector, never typed
+            Signature()
+                .frame(height: 11)
                 .padding(.trailing, 20)
                 .allowsHitTesting(false)
         }
@@ -382,6 +393,30 @@ private struct ClaudeButtonStyle: ButtonStyle {
             .padding(.horizontal, 12)
             .frame(height: 30)
             .background(theme.button.opacity(configuration.isPressed ? 0.85 : 1), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// the aaangelmartin wordmark from its vector (the one aaangelmartin.com serves), white at a whisper
+struct Signature: View {
+    private static let image: NSImage? = {
+        let bundled = Bundle.main.url(forResource: "aaangelmartin", withExtension: "svg")
+        // running from the package (tests, previews): the file next to the sources
+        let local = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("../../Resources/aaangelmartin.svg").standardized
+        guard let url = bundled ?? (FileManager.default.fileExists(atPath: local.path) ? local : nil),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        return image
+    }()
+
+    var body: some View {
+        if let image = Self.image {
+            Image(nsImage: image)
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .foregroundStyle(Color.white.opacity(0.28))
+        }
     }
 }
 

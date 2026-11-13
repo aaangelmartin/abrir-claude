@@ -129,6 +129,13 @@ import Testing
         #expect(u?.week?.resetsAt != nil)
     }
 
+    @Test func timeLeftIsShort() {
+        let now = Date()
+        #expect(UsageLine.left(until: now.addingTimeInterval(42 * 60 + 5), now: now) == "42m")
+        #expect(UsageLine.left(until: now.addingTimeInterval(2 * 3600 + 14 * 60 + 5), now: now) == "2h 14m")
+        #expect(UsageLine.left(until: now.addingTimeInterval(3 * 86_400 + 4 * 3600 + 5), now: now) == "3d 4h")
+    }
+
     @Test func nothingWhenThereAreNoWindows() {
         #expect(Usage.parse(Data(#"{"error":"x"}"#.utf8)) == nil)
     }

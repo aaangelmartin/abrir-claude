@@ -126,6 +126,15 @@ struct UsageLine: View {
     let usage: Usage
     let theme: PaletteTheme
 
+    /// the time until a window resets, short: "42m", "2h 14m", "3d 4h"
+    static func left(until date: Date, now: Date = Date()) -> String {
+        let s = max(0, Int(date.timeIntervalSince(now)))
+        let d = s / 86_400, h = (s % 86_400) / 3600, m = (s % 3600) / 60
+        if d > 0 { return h > 0 ? "\(d)d \(h)h" : "\(d)d" }
+        if h > 0 { return m > 0 ? "\(h)h \(m)m" : "\(h)h" }
+        return "\(max(m, 1))m"
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             if let session = usage.session { window("Session", session) }
@@ -147,6 +156,9 @@ struct UsageLine: View {
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()
                 .foregroundStyle(w.percent >= 80 ? colour : theme.textSecondary)
+            if let left = w.resetsAt.map({ Self.left(until: $0) }) {
+                Text(left).monospacedDigit().foregroundStyle(theme.textMuted.opacity(0.7))
+            }
         }
         .help(w.resetsAt.map { "Resets " + $0.formatted(.relative(presentation: .named)) } ?? "")
     }
