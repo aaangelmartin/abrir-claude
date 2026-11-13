@@ -54,7 +54,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight, height: Self.barHeight)
             TextField(
                 "", text: $model.text,
-                prompt: Text(theme.say("¿En qué carpeta abro Claude?")).foregroundStyle(theme.placeholder)
+                prompt: Text(theme.say("Which folder should Claude open in?")).foregroundStyle(theme.placeholder)
             )
             .textFieldStyle(.plain)
             .font(theme.input)
@@ -78,7 +78,7 @@ struct PaletteView: View {
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if model.showingRecents {
-                Text(theme.say("Recientes"))
+                Text(theme.say("Recent"))
                     .font(theme.label)
                     .foregroundStyle(theme.textMuted)
                     .padding(.leading, Self.barHeight)
@@ -101,8 +101,8 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight)
             Group {
                 switch notice {
-                case .notAllowed: Text(theme.say("Abrir Claude necesita permiso para controlar Terminal."))
-                case let .failed(message): Text(theme.say("Terminal no respondió: ") + message)
+                case .notAllowed: Text(theme.say("Abrir Claude needs permission to control Terminal."))
+                case let .failed(message): Text(theme.say("Terminal did not respond: ") + message)
                 }
             }
             .font(theme.row)
@@ -110,7 +110,7 @@ struct PaletteView: View {
             .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 12)
             if notice == .notAllowed {
-                Button(theme.say("Abrir Ajustes")) { Permissions.openAutomationSettings() }
+                Button(theme.say("Open Settings")) { Permissions.openAutomationSettings() }
                     .buttonStyle(ClaudeButtonStyle(theme: theme))
             }
         }

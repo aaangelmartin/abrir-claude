@@ -41,8 +41,6 @@ struct Choice: Equatable, Sendable {
     var paint: Paint?
     /// one short line beside the value when its row is open
     var detail: String?
-    /// the name on a segment, when the full label is too long to sit beside the others
-    var short: String?
 }
 
 /// how an option is drawn when the options are open.
@@ -51,7 +49,7 @@ enum OptionStyle: Sendable {
     case segments
     /// claude code's /effort slider: faster on the left, smarter on the right
     case slider
-    /// every mode side by side under its short name, the picked one in its colour, its line below
+    /// every mode side by side, each sized to its name, the picked one tinted in its colour
     case modes
 }
 
@@ -68,16 +66,17 @@ enum LaunchOptions {
     /// every value maps to a flag `claude --help` lists; the first value of each adds nothing, so
     /// claude's own default (or settings.json) applies
     static let all: [LaunchOption] = [
-        LaunchOption(id: "model", title: "Modelo", style: .segments, choices: [
-            Choice(label: "Por defecto", args: []),
+        LaunchOption(id: "model", title: "Model", style: .segments, choices: [
+            Choice(label: "Default", args: []),
             // the aliases always run the newest model; its number is read from claude (ModelVersions)
             Choice(label: "Fable", args: ["--model", "fable"]),
             Choice(label: "Opus", args: ["--model", "opus"]),
             Choice(label: "Sonnet", args: ["--model", "sonnet"]),
             Choice(label: "Haiku", args: ["--model", "haiku"]),
         ]),
-        // the levels and colours of claude code's /effort slider
-        LaunchOption(id: "effort", title: "Esfuerzo", style: .slider, choices: [
+        // the levels and colours of claude code's /effort slider. auto adds no flag: claude picks
+        // its own default, medium
+        LaunchOption(id: "effort", title: "Effort", style: .slider, choices: [
             Choice(label: "auto", args: [], paint: .plain(CC.inactive)),
             Choice(label: "low", args: ["--effort", "low"], paint: .plain(CC.warning)),
             Choice(label: "medium", args: ["--effort", "medium"], paint: .plain(CC.success)),
@@ -85,22 +84,20 @@ enum LaunchOptions {
             Choice(label: "xhigh", args: ["--effort", "xhigh"], paint: .shimmer(CC.autoAccept, highlight: CC.autoAcceptShimmer)),
             Choice(label: "max", args: ["--effort", "max"], paint: .rainbow),
         ]),
-        // claude's permission modes in the order its code view lists them (manual, accept edits, plan,
-        // auto, bypass), with claude code's symbols and colours. "no preguntar" sits by bypass: both
-        // stop asking, one by refusing and the other by allowing.
-        LaunchOption(id: "permissionMode", title: "Permisos", style: .modes, choices: [
-            Choice(label: "Por defecto", args: [], symbol: "⏸", paint: .plain(CC.inactive), detail: "Lo que diga tu configuración", short: "Por defecto"),
-            Choice(label: "Manual", args: ["--permission-mode", "manual"], symbol: "⏸", paint: .plain(CC.inactive), detail: "Pide permiso para cada acción"),
-            Choice(label: "Aceptar ediciones", args: ["--permission-mode", "acceptEdits"], symbol: "⏵⏵", paint: .plain(CC.autoAccept), detail: "Edita archivos sin preguntar", short: "Ediciones"),
-            Choice(label: "Plan", args: ["--permission-mode", "plan"], symbol: "⏸", paint: .plain(CC.planMode), detail: "Solo lee y propone un plan"),
-            Choice(label: "Auto", args: ["--permission-mode", "auto"], symbol: "⏵⏵", paint: .plain(CC.warning), detail: "Decide solo qué es seguro"),
-            Choice(label: "No preguntar", args: ["--permission-mode", "dontAsk"], symbol: "⏵⏵", paint: .plain(CC.error), detail: "Rechaza lo que no esté permitido", short: "No preguntar"),
-            Choice(label: "Saltar permisos", args: ["--permission-mode", "bypassPermissions"], symbol: "⏵⏵", paint: .plain(CC.error), detail: "Sin ninguna comprobación", short: "Saltar"),
+        // the modes claude's code view offers, in its order and with its names, painted in claude
+        // code's colours. default adds no flag, so the settings decide.
+        LaunchOption(id: "permissionMode", title: "Permissions", style: .modes, choices: [
+            Choice(label: "Default", args: [], symbol: "⏸", paint: .plain(CC.inactive), detail: "Whatever your settings say"),
+            Choice(label: "Manual", args: ["--permission-mode", "manual"], symbol: "⏸", paint: .plain(CC.inactive), detail: "Asks before every action"),
+            Choice(label: "Accept edits", args: ["--permission-mode", "acceptEdits"], symbol: "⏵⏵", paint: .plain(CC.autoAccept), detail: "Edits files without asking"),
+            Choice(label: "Plan", args: ["--permission-mode", "plan"], symbol: "⏸", paint: .plain(CC.planMode), detail: "Only reads and proposes a plan"),
+            Choice(label: "Auto", args: ["--permission-mode", "auto"], symbol: "⏵⏵", paint: .plain(CC.warning), detail: "Decides on its own what is safe"),
+            Choice(label: "Bypass", args: ["--permission-mode", "bypassPermissions"], symbol: "⏵⏵", paint: .plain(CC.error), detail: "Bypasses every permission check"),
         ]),
-        LaunchOption(id: "session", title: "Sesión", style: .segments, choices: [
-            Choice(label: "Nueva", args: [], icon: "plus"),
-            Choice(label: "Continuar", args: ["--continue"], icon: "arrow.uturn.forward"),
-            Choice(label: "Elegir", args: ["--resume"], icon: "clock.arrow.circlepath"),
+        LaunchOption(id: "session", title: "Session", style: .segments, choices: [
+            Choice(label: "New", args: [], icon: "plus"),
+            Choice(label: "Continue", args: ["--continue"], icon: "arrow.uturn.forward"),
+            Choice(label: "Resume", args: ["--resume"], icon: "clock.arrow.circlepath"),
         ]),
     ]
 
@@ -117,13 +114,20 @@ enum LaunchOptions {
 
     static func load(_ defaults: UserDefaults = .standard) -> [Int] {
         all.map { option in
-            if let label = defaults.string(forKey: key(option)) {
+            if let saved = defaults.string(forKey: key(option)) {
+                let label = renamed[saved] ?? saved
                 return option.choices.firstIndex { $0.label == label } ?? 0
             }
             let pick = defaults.integer(forKey: legacyKey(option))
             return option.choices.indices.contains(pick) ? pick : 0
         }
     }
+
+    /// labels from the spanish interface, so picks made before still load
+    private static let renamed = [
+        "Por defecto": "Default", "Aceptar ediciones": "Accept edits", "Saltar permisos": "Bypass",
+        "Nueva": "New", "Continuar": "Continue", "Elegir": "Resume",
+    ]
 
     static func save(_ picks: [Int], _ defaults: UserDefaults = .standard) {
         for (option, pick) in zip(all, picks) where option.choices.indices.contains(pick) {
@@ -132,12 +136,12 @@ enum LaunchOptions {
     }
 
     /// what claude itself starts with when a value adds no flag: the user's ~/.claude/settings.json
-    private static let settings: (model: String?, effort: String?, mode: String?) = {
+    private static let settings: (model: String?, mode: String?) = {
         let url = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".claude/settings.json")
         guard let data = try? Data(contentsOf: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return (nil, nil, nil) }
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return (nil, nil) }
         let mode = (json["permissions"] as? [String: Any])?["defaultMode"] as? String
-        return (json["model"] as? String, json["effortLevel"] as? String, mode)
+        return (json["model"] as? String, mode)
     }()
 
     /// the label of the value claude's settings already choose for an option, if any
@@ -147,7 +151,8 @@ enum LaunchOptions {
             guard let m = settings.model else { return nil }
             return all[model].choices.first { $0.args.last == m }?.label ?? m
         case effort:
-            return settings.effort
+            // claude's own default; an effortLevel in the settings is not what a new session starts with
+            return "medium"
         case permissions:
             guard let mode = settings.mode else { return nil }
             return all[permissions].choices.first { $0.args.last == mode }?.label

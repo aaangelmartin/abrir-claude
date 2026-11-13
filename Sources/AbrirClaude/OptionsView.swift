@@ -24,7 +24,7 @@ struct OptionsSection: View {
     static let foldedHeight: CGFloat = 44
     static let rowHeight: CGFloat = 40
     static let sliderHeight: CGFloat = 78
-    static let modesHeight: CGFloat = 82
+    static let modesHeight: CGFloat = 40
     static let rowSpacing: CGFloat = 2
     static let padding: CGFloat = 8
     /// what a control may take: the card less the row's margins and the title column
@@ -77,7 +77,7 @@ struct OptionsSection: View {
                 let pick = model.picks[LaunchOptions.model]
                 Group {
                     if pick == 0 {
-                        Text(theme.say("Modelo")).foregroundStyle(theme.textMuted)
+                        Text(theme.say("Model")).foregroundStyle(theme.textMuted)
                     } else {
                         ModelName(label: model.display(model.choice(of: LaunchOptions.model), of: LaunchOptions.model), on: true, theme: theme)
                     }
@@ -86,7 +86,7 @@ struct OptionsSection: View {
             dot
             item(LaunchOptions.effort) {
                 HStack(spacing: 5) {
-                    Text(theme.say("Esfuerzo")).foregroundStyle(theme.textMuted)
+                    Text(theme.say("Effort")).foregroundStyle(theme.textMuted)
                     PaintedText(text: model.choice(of: LaunchOptions.effort).label, paint: model.choice(of: LaunchOptions.effort).paint, font: theme.chip, bold: model.picks[LaunchOptions.effort] != 0)
                 }
             }
@@ -98,7 +98,7 @@ struct OptionsSection: View {
                     if let symbol = choice.symbol {
                         PaintedText(text: symbol, paint: choice.paint, font: .system(size: 10))
                     }
-                    PaintedText(text: theme.say(isDefault ? "Permisos" : choice.label), paint: isDefault ? .plain(CC.inactive) : choice.paint, font: theme.chip, bold: !isDefault)
+                    PaintedText(text: theme.say(isDefault ? "Permissions" : choice.label), paint: isDefault ? .plain(CC.inactive) : choice.paint, font: theme.chip, bold: !isDefault)
                 }
             }
             dot
@@ -106,7 +106,7 @@ struct OptionsSection: View {
                 let choice = model.choice(of: LaunchOptions.session)
                 HStack(spacing: 5) {
                     if let icon = choice.icon { Image(systemName: icon).font(.system(size: 10.5)) }
-                    Text(theme.say(model.picks[LaunchOptions.session] == 0 ? "Nueva sesión" : choice.label))
+                    Text(theme.say(model.picks[LaunchOptions.session] == 0 ? "New session" : choice.label))
                 }
                 .foregroundStyle(model.picks[LaunchOptions.session] == 0 ? theme.textMuted : theme.text)
             }
@@ -266,16 +266,17 @@ private struct Segments: View {
     }
 }
 
-/// claude's effort slider. "auto" is not a level (it is whatever claude's settings say), so it is a
+/// claude's effort slider. "auto" is not a level (claude picks its own default, medium), so it is a
 /// pill of its own before the track rather than its first stop. the track holds the five real levels,
-/// "más rápido" to "más listo": filled in the level's colour up to the ball, which carries a dot of
-/// that colour and glows in it, follows the pointer while dragged and settles on the nearest level.
-/// on auto the ball turns hollow and rests on the level the settings choose, the fill grey.
+/// "faster" to "smarter": filled in the level's colour up to the ball, which carries a dot of that
+/// colour and glows in it, follows the pointer while dragged and settles on the nearest level.
+/// on auto the track steps back, the ball turns hollow on the level claude will use and that level
+/// reads "medium · default"; touching the track takes over from auto.
 private struct EffortSlider: View {
     let option: LaunchOption
     let picked: Int
     let theme: PaletteTheme
-    /// the level ~/.claude/settings.json sets, which auto falls back to
+    /// the level claude uses when no effort is given
     let configured: String?
     let pick: (Int) -> Void
 
@@ -291,15 +292,17 @@ private struct EffortSlider: View {
     /// the real levels, low to max: picks 1...5
     private var stops: Int { option.choices.count - 1 }
     private var isAuto: Bool { picked == 0 }
+    /// auto, and not being dragged out of it
+    private var resting: Bool { isAuto && dragX == nil }
     private func x(_ stop: Int) -> CGFloat { inset + CGFloat(stop) / CGFloat(stops - 1) * (width - inset * 2) }
     private func nearest(_ x: CGFloat) -> Int {
         min(max(Int(((x - inset) / (width - inset * 2) * CGFloat(stops - 1)).rounded()), 0), stops - 1)
     }
-    /// where the ball rests on auto: the configured level, or high when the settings say nothing
+    /// where the ball rests on auto: the level claude will use
     private var autoStop: Int {
-        (configured.flatMap { c in option.choices.firstIndex { $0.label == c } } ?? 3) - 1
+        max((configured.flatMap { c in option.choices.firstIndex { $0.label == c } } ?? 2) - 1, 0)
     }
-    private var stop: Int { isAuto ? max(autoStop, 0) : picked - 1 }
+    private var stop: Int { isAuto ? autoStop : picked - 1 }
 
     var body: some View {
         HStack(alignment: .center, spacing: Self.gap) {
@@ -313,20 +316,20 @@ private struct EffortSlider: View {
     // MARK: auto
 
     private var autoPill: some View {
-        Text(theme.say("auto"))
+        Text(theme.say("Auto"))
             .font(theme.label)
             .fontWeight(isAuto ? .semibold : .regular)
             .foregroundStyle(isAuto ? theme.text : theme.textMuted)
             .frame(width: Self.pillWidth, height: 24)
             .background {
                 RoundedRectangle(cornerRadius: 7)
-                    .fill(isAuto ? Color.white.opacity(0.11) : .clear)
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isAuto ? Color.white.opacity(0.1) : theme.hairlineBorder, lineWidth: 0.5))
+                    .fill(isAuto ? Color.white.opacity(0.12) : .clear)
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isAuto ? Color.white.opacity(0.12) : theme.hairlineBorder, lineWidth: 0.5))
                     .shadow(color: .black.opacity(isAuto ? 0.28 : 0), radius: 2, y: 1)
             }
             .contentShape(Rectangle())
             .onTapGesture { pick(0) }
-            .help(configured.map { "Tu configuración: \($0)" } ?? "Lo que diga tu configuración")
+            .help("Let Claude pick its default effort (\(configured ?? "medium"))")
     }
 
     // MARK: the track
@@ -334,12 +337,11 @@ private struct EffortSlider: View {
     private var slider: some View {
         let choice = option.choices[stop + 1]
         let ballX = dragX ?? x(stop)
-        let colour = isAuto && dragX == nil ? Color.white.opacity(0.35) : EffortSlider.color(choice.paint)
         return VStack(spacing: 5) {
             HStack {
-                Text(theme.say("Más rápido"))
+                Text(theme.say("Faster"))
                 Spacer()
-                Text(theme.say("Más listo"))
+                Text(theme.say("Smarter"))
             }
             .font(theme.label)
             .foregroundStyle(theme.textMuted)
@@ -349,8 +351,8 @@ private struct EffortSlider: View {
                     .overlay(Capsule().strokeBorder(Color.black.opacity(0.25), lineWidth: 0.5))
                 // the colours stay put along the track; the fill only uncovers them
                 Group {
-                    if isAuto && dragX == nil {
-                        Color.white.opacity(0.22)
+                    if resting {
+                        Color.white.opacity(0.18)
                     } else {
                         EffortSlider.fill(choice.paint)
                     }
@@ -364,7 +366,7 @@ private struct EffortSlider: View {
                         .offset(x: x(s) - 1)
                         .opacity(s == 0 || s == stops - 1 || abs(x(s) - ballX) < ball / 2 ? 0 : 1)
                 }
-                theBall(colour: colour, hollow: isAuto && dragX == nil)
+                theBall(colour: EffortSlider.color(choice.paint))
                     .offset(x: ballX - inset)
             }
             .frame(width: width, height: 22)
@@ -396,29 +398,33 @@ private struct EffortSlider: View {
             .frame(width: width, height: 15)
         }
         .frame(width: width)
+        // on auto the slider steps back, and comes forward under the pointer
+        .opacity(resting ? (hovering ? 0.85 : 0.6) : 1)
         .animation(dragX == nil ? Motion.value : .interactiveSpring(response: 0.1, dampingFraction: 0.9), value: ballX)
-        .animation(.easeOut(duration: 0.15), value: hovering)
+        .animation(.easeOut(duration: 0.18), value: hovering)
+        .animation(.easeOut(duration: 0.2), value: resting)
     }
 
     /// white with a dot of the level's colour and a glow of it; on auto a hollow ring
-    private func theBall(colour: Color, hollow: Bool) -> some View {
+    private func theBall(colour: Color) -> some View {
         ZStack {
-            Circle().fill(hollow ? Color(hex: 0x2A2826) : Color(hex: 0xF5F4EF))
-            Circle().strokeBorder(Color.white.opacity(hollow ? 0.55 : 0), lineWidth: 1.5)
-            Circle().fill(colour).frame(width: 6, height: 6).opacity(hollow ? 0 : 1)
+            Circle().fill(resting ? Color(hex: 0x2A2826) : Color(hex: 0xF5F4EF))
+            Circle().strokeBorder(Color.white.opacity(resting ? 0.7 : 0), lineWidth: 1.5)
+            Circle().fill(colour).frame(width: 6, height: 6).opacity(resting ? 0 : 1)
         }
         .frame(width: ball, height: ball)
-        .shadow(color: hollow ? .clear : colour.opacity(0.55), radius: dragX == nil ? 5 : 8)
+        .shadow(color: resting ? .clear : colour.opacity(0.55), radius: dragX == nil ? 5 : 8)
         .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
         .scaleEffect(dragX != nil ? 1.15 : hovering ? 1.06 : 1)
     }
 
     @ViewBuilder private func label(_ s: Int) -> some View {
         let c = option.choices[s + 1]
-        if !isAuto && s == stop {
+        if s == stop && !resting {
             PaintedText(text: c.label, paint: c.paint, font: theme.label, bold: true)
-        } else if isAuto && s == stop {
-            Text(c.label).font(theme.label).foregroundStyle(theme.textSecondary)
+        } else if s == stop {
+            (Text(c.label).foregroundStyle(theme.text) + Text(" · default").foregroundStyle(theme.textMuted))
+                .font(theme.label)
         } else {
             Text(c.label).font(theme.label).foregroundStyle(theme.textMuted.opacity(0.7))
         }
@@ -447,81 +453,42 @@ private struct EffortSlider: View {
     }
 }
 
-/// the permission modes: "por defecto" as a pill of its own (it is whatever the settings say, as auto
-/// is for effort), then two groups side by side, the modes that still ask you (manual, plan) and the
-/// ones that do not (ediciones, auto, no preguntar, saltar), so how much is left to claude reads at a
-/// glance. the picked mode sits on a pill tinted in its colour that slides across
-/// both groups; under them, claude code's symbol for it and what it does.
+/// the permission modes as claude's code view names them, side by side in one control, each as wide
+/// as its name. the picked one sits on a pill tinted in its colour (claude code's colours) that
+/// slides from mode to mode. what a mode does shows on hover.
 private struct ModePicker: View {
     let option: LaunchOption
     let picked: Int
     let theme: PaletteTheme
-    /// the mode ~/.claude/settings.json sets, which "por defecto" falls back to
+    /// the mode ~/.claude/settings.json sets, which "default" falls back to
     let configured: String?
     let pick: (Int) -> Void
     @Namespace private var thumb
 
-    /// indices into the choices: the modes that ask, then the ones that do not
-    private static let asks = [1, 3]
-    private static let doesNotAsk = [2, 4, 5, 6]
-
     var body: some View {
-        let choice = option.choices[picked]
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .bottom, spacing: 6) {
-                segment(option.choices[0], on: picked == 0)
-                    .padding(2)
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(theme.hairlineBorder, lineWidth: 0.5))
+        HStack(spacing: 0) {
+            ForEach(Array(option.choices.enumerated()), id: \.offset) { i, c in
+                segment(c, on: i == picked)
                     .contentShape(Rectangle())
-                    .onTapGesture { pick(0) }
-                    .fixedSize()
-                group(theme.say("Te pregunta"), Self.asks)
-                group(theme.say("No te pregunta"), Self.doesNotAsk)
+                    .onTapGesture { pick(i) }
+                    .help(i == 0 ? "Your settings: \(configured ?? "default")" : c.detail ?? c.label)
             }
-            .frame(width: OptionsSection.controlWidth)
-
-            HStack(spacing: 6) {
-                if let symbol = choice.symbol {
-                    PaintedText(text: symbol, paint: choice.paint, font: .system(size: 10))
-                }
-                Text(theme.say(line(choice)))
-                    .font(theme.label)
-                    .foregroundStyle(risky(choice) ? color(choice).opacity(0.85) : theme.textMuted)
-            }
-            .padding(.leading, 4)
-            .id(picked)
-            .transition(.opacity)
         }
+        .padding(2)
+        .frame(width: OptionsSection.controlWidth)
+        .background(theme.controlTrack, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(theme.hairlineBorder, lineWidth: 0.5))
         .animation(Motion.value, value: picked)
     }
 
-    private func group(_ title: String, _ ids: [Int]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 10.5, weight: .medium))
-                .foregroundStyle(theme.textMuted.opacity(0.8))
-                .padding(.leading, 4)
-            HStack(spacing: 0) {
-                ForEach(ids, id: \.self) { i in
-                    segment(option.choices[i], on: i == picked)
-                        .contentShape(Rectangle())
-                        .onTapGesture { pick(i) }
-                }
-            }
-            .padding(2)
-            .background(theme.controlTrack, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(theme.hairlineBorder, lineWidth: 0.5))
-        }
-    }
-
     private func segment(_ c: Choice, on: Bool) -> some View {
-        Text(theme.say(c.short ?? c.label))
+        Text(theme.say(c.label))
             .font(theme.chip)
             .fontWeight(on ? .semibold : .regular)
             .foregroundStyle(on ? color(c) : theme.textSecondary)
             .lineLimit(1)
             .fixedSize()
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 6)
             .frame(maxWidth: .infinity)
             .frame(height: 24)
             .background {
@@ -535,13 +502,6 @@ private struct ModePicker: View {
             }
     }
 
-    /// the full name and what it does: "Aceptar ediciones. Edita archivos sin preguntar"
-    private func line(_ c: Choice) -> String {
-        if c.args.isEmpty, let configured { return "Usa tu configuración: " + configured }
-        guard let detail = c.detail else { return c.label }
-        return c.short == nil || c.short == c.label ? detail : c.label + ". " + detail
-    }
-
     private func color(_ c: Choice) -> Color {
         if case let .plain(rgb) = c.paint, rgb != CC.inactive { return Color(rgb) }
         return theme.text
@@ -550,11 +510,6 @@ private struct ModePicker: View {
     private func isPlain(_ c: Choice) -> Bool {
         if case let .plain(rgb) = c.paint { return rgb == CC.inactive }
         return true
-    }
-
-    private func risky(_ c: Choice) -> Bool {
-        if case let .plain(rgb) = c.paint { return rgb == CC.error }
-        return false
     }
 }
 

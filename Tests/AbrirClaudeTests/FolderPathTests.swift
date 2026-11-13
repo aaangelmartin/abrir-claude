@@ -102,7 +102,7 @@ import Testing
         // opus, high effort, plan, continue
         #expect(LaunchOptions.args(for: [2, 3, 3, 1]) == ["--model", "opus", "--effort", "high", "--permission-mode", "plan", "--continue"])
         // max effort, bypass permissions
-        #expect(LaunchOptions.args(for: [0, 5, 6, 0]) == ["--effort", "max", "--permission-mode", "bypassPermissions"])
+        #expect(LaunchOptions.args(for: [0, 5, 5, 0]) == ["--effort", "max", "--permission-mode", "bypassPermissions"])
     }
 
     @Test func rememberedPicksSurviveAndOutOfRangeFallsBack() {
@@ -111,6 +111,14 @@ import Testing
         #expect(LaunchOptions.load(defaults) == [1, 5, 2, 2])
         defaults.set("Gone", forKey: "option.model.label")
         #expect(LaunchOptions.load(defaults)[0] == 0)
+    }
+
+    @Test func spanishLabelsStillLoad() {
+        let defaults = UserDefaults(suiteName: "abrir-claude-tests-\(UUID().uuidString)")!
+        defaults.set("Saltar permisos", forKey: "option.permissionMode.label")
+        defaults.set("Continuar", forKey: "option.session.label")
+        #expect(LaunchOptions.load(defaults)[2] == 5)
+        #expect(LaunchOptions.load(defaults)[3] == 1)
     }
 
     @Test func oldIndexPicksStillLoad() {

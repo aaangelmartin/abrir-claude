@@ -30,9 +30,9 @@ import Testing
     @Test func empty() { shot("1-empty") { $0.reset() } }
     @Test func typing() { shot("2-typing") { $0.text = "Dev" } }
     @Test func optionsFolded() { shot("3-folded") { m in m.reset(); m.pick(2, of: 0); m.pick(4, of: 1); m.pick(3, of: 2); m.pick(0, of: 3) } }
-    @Test func optionsOpen() { shot("4-open") { m in m.reset(); m.pick(2, of: 0); m.pick(3, of: 1); m.pick(6, of: 2); m.pick(1, of: 3); _ = m.handle(.jumpDown); _ = m.handle(.down) } }
+    @Test func optionsOpen() { shot("4-open") { m in m.reset(); m.pick(2, of: 0); m.pick(3, of: 1); m.pick(5, of: 2); m.pick(1, of: 3); _ = m.handle(.jumpDown); _ = m.handle(.down) } }
     @Test func optionsMax() { shot("5-max") { m in m.reset(); m.pick(5, of: 1); m.pick(2, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down) } }
     @Test func optionsPermissions() { shot("7-permissions") { m in m.reset(); m.pick(1, of: 0); m.pick(4, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
-    @Test func optionsBypass() { shot("8-bypass") { m in m.reset(); m.pick(0, of: 1); m.pick(6, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
+    @Test func optionsBypass() { shot("8-bypass") { m in m.reset(); m.pick(0, of: 1); m.pick(5, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) } } }
 }
