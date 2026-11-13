@@ -115,19 +115,15 @@ struct OptionsSection: View {
     private var keys: some View {
         // the same width whatever is lit, so nothing moves as the arrows go
         let lit = model.selected != nil
+        // what never changes first, what follows the arrows last: the gap stays the same and nothing
+        // shifts. the shortcut also starts a session; only ⌘↵ is drawn
         return HStack(spacing: 24) {
+            KeyHint(keys: ["⌘↵"], label: "New session", theme: theme)
+                .help(lit ? "Start a new session in that session's folder (or press \(Self.shortcutText))" : "Start a new session in your home folder (or press \(Self.shortcutText))")
             if !model.live.isEmpty {
-                // both words take the room of the longer, so nothing is cut and nothing moves
-                ZStack(alignment: .leading) {
-                    KeyHint(keys: ["↓"], label: "Choose", theme: theme).opacity(lit ? 0 : 1)
-                    KeyHint(keys: ["↵"], label: "Open", theme: theme).opacity(lit ? 1 : 0)
-                }
-                .fixedSize()
-                .help(lit ? "Go to the session's window" : "Highlight a running session")
+                KeyHint(keys: [lit ? "↵" : "↓"], label: lit ? "Open" : "Choose", theme: theme)
+                    .help(lit ? "Go to the session's window" : "Highlight a running session")
             }
-            // the shortcut itself starts a new session, as ⌘↵ does
-            KeyHint(keys: [Self.shortcutText, "⌘↵"], label: "New session", theme: theme)
-                .help(lit ? "Start a new session in that session's folder" : "Start a new session in your home folder")
         }
         .padding(.leading, 8)
     }
