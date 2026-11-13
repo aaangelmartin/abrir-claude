@@ -54,7 +54,7 @@ import Testing
         ]
         m.refreshRows(); m.selected = 1
     } }
-    @Test func recents() { shot("12-search") { m in m.reset(); m.projects = Self.sample(); m.live = []; m.text = "effort" } }
+    @Test func recents() { shot("12-resume") { m in m.reset(); m.projects = Self.sample(); m.live = []; m.switchMode(to: .resume) } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.switchMode(to: .new); m.text = "abr" } }
     @Test func newMode() { shot("11-new") { m in m.reset(); m.projects = Self.sample(); m.switchMode(to: .new) } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); m.switchMode(to: .new); for i in 0..<3 { m.pick(0, of: i) } } }

@@ -68,14 +68,39 @@ import Testing
 
 @MainActor
 @Suite struct ModeTests {
-    @Test func opensOnSessionsAndTabGoesToNew() {
+    @Test func opensOnRunningAndTabWalksTheTabs() {
         let m = PaletteModel()
         m.reset()
-        #expect(m.mode == .sessions)
+        #expect(m.mode == .running)
+        _ = m.handle(.tab)
+        #expect(m.mode == .resume)
         _ = m.handle(.tab)
         #expect(m.mode == .new)
-        _ = m.handle(.escape)
-        #expect(m.mode == .sessions)
+        _ = m.handle(.backTab)
+        #expect(m.mode == .resume)
+        _ = m.handle(.tabNumber(1))
+        #expect(m.mode == .running)
+    }
+
+    @Test func theShortcutAgainGoesToNewThenStarts() {
+        let m = PaletteModel()
+        var opened = false
+        m.onOpen = { _, _ in opened = true }
+        m.reset()
+        m.hotkeyAgain()
+        #expect(m.mode == .new)
+        #expect(!opened)
+        m.hotkeyAgain()
+        #expect(opened)
+    }
+
+    @Test func resumeListsPastSessionsWithNothingTyped() {
+        let m = PaletteModel()
+        let home = FolderPath.home
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "s1", title: "One", updated: Date())])]
+        m.live = []
+        m.switchMode(to: .resume)
+        #expect(m.count == 1)
     }
 
     @Test func enterOnAFolderStartsANewSessionThere() {
@@ -183,14 +208,13 @@ import Testing
         #expect(m.selected == nil)
     }
 
-    @Test func tabWithNothingLitDoesNothing() {
+    @Test func tabWithNothingLitGoesToTheNextTab() {
         let m = PaletteModel()
         m.switchMode(to: .new)
         m.text = "Dev"
         m.selected = nil
         _ = m.handle(.tab)
-        #expect(m.text == "Dev")
-        #expect(m.selected == nil)
+        #expect(m.mode == .running)
     }
 }
 
@@ -288,6 +312,7 @@ import Testing
         m.live = []
         var got: (String, [String])?
         m.onOpen = { got = ($0, $1) }
+        m.switchMode(to: .resume)
         m.text = "effort slider"
         #expect(m.pastShown.count == 1)
         _ = m.handle(.down)

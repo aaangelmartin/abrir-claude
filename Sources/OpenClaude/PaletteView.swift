@@ -26,15 +26,13 @@ struct PaletteView: View {
                 noticeView(notice)
             }
 
-            if model.mode == .sessions {
+            if model.mode != .new {
                 if model.count > 0 {
                     divider
                     SessionsList(model: model, theme: theme)
                 } else {
                     divider
-                    Text(theme.say(model.text.isEmpty
-                                   ? "No Claude sessions running. Type to find past ones, or press Tab for a new session."
-                                   : "No sessions match. Press Tab to start a new one."))
+                    Text(theme.say(emptyLine))
                         .font(theme.label)
                         .foregroundStyle(theme.textMuted)
                         .padding(.leading, Self.barHeight)
@@ -79,7 +77,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight, height: Self.barHeight)
             TextField(
                 "", text: $model.text,
-                prompt: Text(theme.say(model.mode == .sessions ? "Search sessions" : "Folder for a new session")).foregroundStyle(theme.placeholder)
+                prompt: Text(theme.say(placeholder)).foregroundStyle(theme.placeholder)
             )
             .textFieldStyle(.plain)
             .font(theme.input)
@@ -92,6 +90,24 @@ struct PaletteView: View {
                 .padding(.trailing, 14)
         }
         .frame(height: Self.barHeight)
+    }
+
+    private var placeholder: String {
+        switch model.mode {
+        case .running: "Search running sessions"
+        case .resume: "Search past sessions"
+        case .new: "Folder for a new session"
+        }
+    }
+
+    /// what an empty tab says, and where to go instead
+    private var emptyLine: String {
+        let typed = !model.text.isEmpty
+        switch model.mode {
+        case .running: return typed ? "No running session matches." : "No Claude sessions running. Tab to resume one, or ⌥C for a new one."
+        case .resume: return typed ? "No past session matches." : "No past sessions yet. ⌥C to start one."
+        case .new: return ""
+        }
     }
 
     private var divider: some View {
@@ -408,14 +424,14 @@ private struct SessionsList: View {
     let theme: PaletteTheme
 
     var body: some View {
-        let running = model.shownLive
-        let past = model.pastShown
-        let lines = running.count + past.count + (running.isEmpty ? 0 : 1) + (past.isEmpty ? 0 : 1)
+        let running = model.mode == .running ? model.shownLive : []
+        let past = model.mode == .resume ? model.pastShown : []
+        let lines = running.count + past.count + 1
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 0) {
-                    if !running.isEmpty {
-                        SectionLabel(title: "Running", hint: "↵ go to it", theme: theme)
+                    if model.mode == .running {
+                        SectionLabel(title: running.count == 1 ? "1 running" : "\(running.count) running", hint: "↵ go to it   ⌘↵ new session in its folder", theme: theme)
                         ForEach(Array(running.enumerated()), id: \.element.id) { i, s in
                             line(i, icon: AnyView(StateDot(state: s.state)), title: s.name, folder: s.cwd,
                                  trailing: AnyView(HStack(spacing: 12) {
@@ -424,11 +440,10 @@ private struct SessionsList: View {
                                          .frame(width: 58, alignment: .trailing)
                                  }))
                         }
-                    }
-                    if !past.isEmpty {
-                        SectionLabel(title: "Past", hint: "↵ resume", theme: theme)
+                    } else {
+                        SectionLabel(title: "Past sessions", hint: "↵ resume   ⌘↵ new session in its folder", theme: theme)
                         ForEach(Array(past.enumerated()), id: \.element.session.id) { j, m in
-                            line(running.count + j, icon: AnyView(Image(systemName: "text.bubble").font(.system(size: 12)).foregroundStyle(theme.icon)),
+                            line(j, icon: AnyView(Image(systemName: "arrow.uturn.backward").font(.system(size: 11.5)).foregroundStyle(theme.icon)),
                                  title: m.session.title, folder: FolderPath.resolve(m.folder),
                                  trailing: AnyView(Text(Ago.long(m.session.updated)).monospacedDigit().foregroundStyle(theme.textMuted.opacity(0.8))))
                         }
@@ -504,14 +519,15 @@ private struct ModeSwitch: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            item("Sessions", .sessions)
+            item("Running", .running)
+            item("Resume", .resume)
             item("New", .new)
         }
         .padding(2)
         .background(theme.controlTrack, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(theme.hairlineBorder, lineWidth: 0.5))
         .animation(Motion.value, value: model.mode)
-        .help("Tab or ⌘N to switch")
+        .help("Tab and ⇧Tab, or ⌘1 ⌘2 ⌘3. ⌥C again goes to New")
     }
 
     private func item(_ title: String, _ mode: PaletteModel.Mode) -> some View {
@@ -519,6 +535,12 @@ private struct ModeSwitch: View {
         return HStack(spacing: 4) {
             if mode == .new { Image(systemName: "plus").font(.system(size: 9.5, weight: .semibold)) }
             Text(theme.say(title))
+            if mode == .running, !model.live.isEmpty {
+                // how many run, yellow when one of them needs you
+                Text("\(model.live.count)")
+                    .monospacedDigit()
+                    .foregroundStyle(model.live.contains { $0.state == .waiting } ? Color(CC.warning) : theme.textMuted)
+            }
         }
         .font(theme.label)
         .fontWeight(on ? .semibold : .regular)
