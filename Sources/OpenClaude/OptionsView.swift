@@ -74,6 +74,51 @@ struct OptionsSection: View {
 
     private var summary: some View {
         HStack(spacing: 0) {
+            ZStack(alignment: .leading) {
+                if model.moment == .running {
+                    keys.transition(.opacity.combined(with: .offset(y: 3)))
+                } else {
+                    launchValues.transition(.opacity.combined(with: .offset(y: -3)))
+                }
+            }
+            .animation(.easeOut(duration: 0.18), value: model.moment == .running)
+            Spacer(minLength: 8)
+            if let usage = model.usage {
+                UsageLine(usage: usage, theme: theme)
+                    .padding(.trailing, model.moment == .running ? 0 : 10)
+                    .transition(.opacity)
+            }
+            if model.moment != .running {
+                HStack(spacing: 5) {
+                    Text("⌥↓").font(theme.label)
+                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+                }
+                .foregroundStyle(theme.textMuted.opacity(0.7))
+                .help("Options (⌥↓)")
+                .transition(.opacity)
+            }
+        }
+        .font(theme.chip)
+        .padding(.leading, 12)
+        .padding(.trailing, 20)
+        .frame(height: Self.foldedHeight)
+        .contentShape(Rectangle())
+        .onTapGesture { if model.moment != .running { model.openOptions() } }
+        .animation(.easeOut(duration: 0.18), value: model.moment == .running)
+    }
+
+    /// over the running sessions nothing is launched: the keys that matter there instead
+    private var keys: some View {
+        HStack(spacing: 14) {
+            if !model.live.isEmpty { KeyHint(key: "↵", label: "Switch", theme: theme) }
+            KeyHint(key: "⌘↵", label: "New session", theme: theme)
+        }
+        .fixedSize()
+        .padding(.leading, 8)
+    }
+
+    private var launchValues: some View {
+        HStack(spacing: 0) {
             item(LaunchOptions.model) {
                 ModelName(label: model.display(model.choice(of: LaunchOptions.model), of: LaunchOptions.model), on: true, theme: theme)
             }
@@ -90,25 +135,7 @@ struct OptionsSection: View {
                     PaintedText(text: theme.say(choice.label), paint: choice.paint == .plain(CC.inactive) ? .plain(RGB(255, 255, 255)) : choice.paint, font: theme.chip, bold: true)
                 }
             }
-            Spacer(minLength: 8)
-            if let usage = model.usage {
-                UsageLine(usage: usage, theme: theme)
-                    .padding(.trailing, 10)
-                    .transition(.opacity)
-            }
-            HStack(spacing: 5) {
-                Text("⌥↓").font(theme.label)
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
-            }
-            .foregroundStyle(theme.textMuted.opacity(0.7))
-            .help("Options (⌥↓)")
         }
-        .font(theme.chip)
-        .padding(.leading, 12)
-        .padding(.trailing, 20)
-        .frame(height: Self.foldedHeight)
-        .contentShape(Rectangle())
-        .onTapGesture { model.openOptions() }
     }
 
     private func item<Content: View>(_ index: Int, @ViewBuilder _ content: () -> Content) -> some View {
@@ -117,6 +144,29 @@ struct OptionsSection: View {
             .frame(height: 28)
             .contentShape(Rectangle())
             .onTapGesture { model.openOptions(at: index) }
+    }
+}
+
+/// a key in a small cap and what it does, quiet
+struct KeyHint: View {
+    let key: String
+    let label: String
+    let theme: PaletteTheme
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(key)
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+                .padding(.horizontal, 5)
+                .frame(minWidth: 18, minHeight: 18)
+                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 4))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+            Text(theme.say(label))
+                .font(theme.label)
+                .foregroundStyle(theme.textMuted.opacity(0.85))
+        }
+        .lineLimit(1)
     }
 }
 
@@ -140,6 +190,8 @@ struct UsageLine: View {
             if let session = usage.session { window("Session", session) }
             if let week = usage.week { window("Week", week) }
         }
+        .lineLimit(1)
+        .fixedSize()
         .font(theme.label)
     }
 
@@ -152,6 +204,7 @@ struct UsageLine: View {
                 Capsule().fill(Color.white.opacity(0.1))
                 Capsule().fill(colour).frame(width: max(3, 28 * min(w.percent, 100) / 100))
             }
+            .animation(.easeOut(duration: 0.4), value: w.percent)
             .frame(width: 28, height: 4)
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()

@@ -364,7 +364,7 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
-        if key == .optionsDown { optionRow = optionRow ?? 0; return true }
+        if key == .optionsDown { if moment != .running { optionRow = optionRow ?? 0 }; return true }
         if key == .optionsUp { optionRow = nil; return true }
         if let optionRow { return handleOptions(key, optionRow) }
         switch key {

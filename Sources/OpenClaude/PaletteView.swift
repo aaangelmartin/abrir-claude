@@ -9,6 +9,10 @@ import SwiftUI
 struct PaletteView: View {
     @ObservedObject var model: PaletteModel
     @FocusState private var fieldFocused: Bool
+    /// the lit row's light: one shape that glides from row to row
+    @Namespace private var lit
+    /// the palette comes in with a short fade and a hint of scale
+    @State private var shown = false
     private let theme = PaletteTheme.current
 
     /// claude's quick entry window is 606 wide; its bar fills it
@@ -27,53 +31,61 @@ struct PaletteView: View {
                 noticeView(notice)
             }
 
-            switch model.moment {
-            case .running:
-                divider
-                if model.live.isEmpty {
-                    hint("No sessions running. Type a folder to start one.")
-                } else {
-                    RunningList(model: model, theme: theme)
-                }
-            case .folders:
-                divider
-                if !model.rows.isEmpty {
-                    rowsView
-                } else if let folder = model.typedFolder {
-                    hint("↵  Open \(folder.isEmpty ? "~" : folder)")
-                } else {
-                    hint("No folder matches.")
-                }
-            case .step:
-                divider
-                StepList(model: model, theme: theme)
-            }
-
-            // how a session starts or resumes, where one does; the plan's use everywhere
-            if model.moment == .running {
-                if let usage = model.usage {
-                    divider
-                    HStack {
-                        Spacer()
-                        UsageLine(usage: usage, theme: theme)
+            divider
+            Group {
+                switch model.moment {
+                case .running:
+                    if model.live.isEmpty {
+                        hint("No sessions running. Type a folder to start one.")
+                    } else {
+                        RunningList(model: model, theme: theme)
                     }
-                    .padding(.trailing, 20)
-                    .frame(height: 40)
+                case .folders:
+                    if !model.rows.isEmpty {
+                        rowsView
+                    } else if let folder = model.typedFolder {
+                        hint("↵  Open \(folder.isEmpty ? "~" : folder)")
+                    } else {
+                        hint("No folder matches.")
+                    }
+                case .step:
+                    StepList(model: model, theme: theme)
                 }
-            } else {
-                divider
-                OptionsSection(model: model, theme: theme)
             }
+            // a folder slides in from the right; going back, it fades
+            .id(model.moment == .step ? "step:\(model.stepFolder ?? "")" : model.moment == .running ? "running" : "folders")
+            .transition(model.moment == .step
+                        ? .asymmetric(insertion: .opacity.combined(with: .offset(x: 24)), removal: .opacity)
+                        : .opacity)
+
+            // one footer everywhere, its left side changing with what can be done
+            divider
+            OptionsSection(model: model, theme: theme)
         }
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
+        // the card grows and shrinks smoothly as what it shows changes
+        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: model.moment)
+        .animation(.spring(response: 0.22, dampingFraction: 0.92), value: model.stepFolder)
+        .animation(.spring(response: 0.18, dampingFraction: 0.95), value: model.count)
+        .animation(.spring(response: 0.2, dampingFraction: 0.88), value: model.selected)
+        .environment(\.litNamespace, lit)
         .background(
             LinearGradient(colors: [theme.gradientTop, theme.gradientBottom], startPoint: .top, endPoint: .bottom)
         )
         .clipShape(RoundedRectangle(cornerRadius: Self.radius))
         .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(theme.ring, lineWidth: 0.5))
-        .onAppear { fieldFocused = true }
-        .onReceive(NotificationCenter.default.publisher(for: .paletteDidShow)) { _ in fieldFocused = true }
+        .opacity(shown ? 1 : 0)
+        .scaleEffect(shown ? 1 : 0.985, anchor: .top)
+        .onAppear { fieldFocused = true; appear() }
+        .onReceive(NotificationCenter.default.publisher(for: .paletteDidShow)) { _ in fieldFocused = true; appear() }
+    }
+
+    private func appear() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { shown = false }
+        withAnimation(.easeOut(duration: 0.14)) { shown = true }
     }
 
     // MARK: the bar
@@ -127,6 +139,7 @@ struct PaletteView: View {
             FolderList(model: model, theme: theme)
                 // a new list (typing, tab) is a new scroll view: it always starts at the top, same margins
                 .id(model.listID)
+                .transition(.identity)
         }
     }
 
@@ -342,10 +355,7 @@ private struct FolderRow: View {
         }
         .padding(.trailing, 12)
         .frame(height: PaletteView.rowHeight)
-        .background(
-            isSelected ? theme.rowSelected : .clear,
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .background { if isSelected { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
     }
@@ -482,7 +492,7 @@ private struct ListLine: View {
         }
         .padding(.trailing, 12)
         .frame(height: PaletteView.rowHeight)
-        .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .background { if on { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
         .id(index)
@@ -676,6 +686,31 @@ enum Ago {
         case ..<(86_400 * 60): return "\(Int(s / 604_800))w"
         default: return "\(Int(s / 2_592_000))mo"
         }
+    }
+}
+
+/// the light behind the lit row, one shape that glides between rows when a namespace is given
+struct LitRow: View {
+    let theme: PaletteTheme
+    @Environment(\.litNamespace) private var namespace
+
+    var body: some View {
+        if let namespace {
+            RoundedRectangle(cornerRadius: 8).fill(theme.rowSelected).matchedGeometryEffect(id: "lit", in: namespace)
+        } else {
+            RoundedRectangle(cornerRadius: 8).fill(theme.rowSelected)
+        }
+    }
+}
+
+private struct LitNamespaceKey: EnvironmentKey {
+    static let defaultValue: Namespace.ID? = nil
+}
+
+extension EnvironmentValues {
+    var litNamespace: Namespace.ID? {
+        get { self[LitNamespaceKey.self] }
+        set { self[LitNamespaceKey.self] = newValue }
     }
 }
 
