@@ -9,7 +9,7 @@ extension KeyboardShortcuts.Name {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var palette: PaletteController?
+    private var panel: PanelController?
     private let onboarding = OnboardingController()
 
     /// the app was "Abrir Claude" (com.aaangelmartin.abrir-claude) before: its recent folders come along once
@@ -25,18 +25,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = Self.editMenu()
         Self.bringOverRecents()
-        let palette = PaletteController()
-        self.palette = palette
+        let panel = PanelController()
+        self.panel = panel
         // on key down, as claude's own quick entry: it opens while the key is still going down
-        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak palette, weak self] in
+        KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak panel, weak self] in
             MainActor.assumeIsolated {
-                // while the setup is open the shortcut answers there (its caps, then the palette)
-                if let onboarding = self?.onboarding, onboarding.isVisible { onboarding.hotkey() } else { palette?.hotkey() }
+                // while the setup is open the shortcut answers there (its caps, then the window)
+                if let onboarding = self?.onboarding, onboarding.isVisible { onboarding.hotkey() } else { panel?.hotkey() }
             }
         }
 
-        palette.onSetup = { [weak self] in self?.onboarding.show() }
-        onboarding.onFinish = { [weak palette] in palette?.show() }
+        panel.onSetup = { [weak self] in self?.onboarding.show() }
+        onboarding.onFinish = { [weak panel] in panel?.show() }
 
         // the first launch: start at login from now on, and walk through the setup once
         let defaults = UserDefaults.standard
@@ -47,9 +47,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !OnboardingController.isDone { onboarding.show() }
     }
 
-    // opening the app again while it runs (finder, spotlight) shows the palette
+    // opening the app again while it runs (finder, spotlight) shows the window
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        palette?.show()
+        panel?.show()
         return false
     }
 

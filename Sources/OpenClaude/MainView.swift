@@ -2,18 +2,18 @@ import AppKit
 import LaaabsKit
 import SwiftUI
 
-/// the palette, built as claude desktop's quick entry: one 56 pt bar with the starburst in a 56 pt
+/// the window, built as claude desktop's quick entry: one 56 pt bar with the starburst in a 56 pt
 /// cell and the field beside it, no field border, no focus ring. folders (recent while empty, matching
 /// while typing) open under a hairline inside the same card and scroll past seven. at the bottom, the
 /// launch options: one summary line that opens into four rows, each changed with ← →.
-struct PaletteView: View {
-    @ObservedObject var model: PaletteModel
+struct MainView: View {
+    @ObservedObject var model: MainModel
     @FocusState private var fieldFocused: Bool
     /// the lit row's light: one shape that glides from row to row
     @Namespace private var lit
-    /// the palette comes in with a short fade and a hint of scale
+    /// the window comes in with a short fade and a hint of scale
     @State private var shown = false
-    private let theme = PaletteTheme.current
+    private let theme = AppTheme.current
 
     /// claude's quick entry window is 606 wide; its bar fills it
     static let width: CGFloat = 606
@@ -76,7 +76,7 @@ struct PaletteView: View {
         .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(theme.ring, lineWidth: 0.5))
         .opacity(shown ? 1 : 0)
         .onAppear { fieldFocused = true; appear() }
-        .onReceive(NotificationCenter.default.publisher(for: .paletteDidShow)) { _ in fieldFocused = true; appear() }
+        .onReceive(NotificationCenter.default.publisher(for: .windowDidShow)) { _ in fieldFocused = true; appear() }
     }
 
     private func appear() {
@@ -143,7 +143,7 @@ struct PaletteView: View {
 
     // MARK: permission notice
 
-    private func noticeView(_ notice: PaletteModel.Notice) -> some View {
+    private func noticeView(_ notice: MainModel.Notice) -> some View {
         HStack(spacing: 0) {
             Image(systemName: "exclamationmark.circle")
                 .font(.system(size: 13))
@@ -173,8 +173,8 @@ struct PaletteView: View {
 /// the folders under the bar: seven rows tall, then it scrolls, with a thin thumb of its own (no system
 /// track) and soft edges where there is more to see.
 private struct FolderList: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
     /// where the pointer was when this list appeared: a row under a pointer that has not moved is not
     /// picked, only one the pointer moves onto
     @State private var pointerAtStart = NSEvent.mouseLocation
@@ -188,11 +188,15 @@ private struct FolderList: View {
     private static let fade: CGFloat = 18
     private static let topID = -1
     private static let endID = Int.max
-    private var rowHeight: CGFloat { PaletteView.rowHeight }
+    private var rowHeight: CGFloat { MainView.rowHeight }
     private var visibleHeight: CGFloat {
-        CGFloat(min(model.rows.count, PaletteView.visibleRows)) * rowHeight + Self.padding * 2
+        CGFloat(min(model.rows.count, MainView.visibleRows)) * rowHeight + Self.padding * 2
     }
-    private var overflows: Bool { model.rows.count > PaletteView.visibleRows }
+    private var overflows: Bool { model.rows.count > MainView.visibleRows }
+    private var columns: (time: Bool, sessions: Bool) {
+        let infos = model.rows.compactMap { model.info(for: $0) }
+        return (infos.contains { $0.lastUsed != nil }, infos.contains { !$0.sessions.isEmpty })
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -203,7 +207,8 @@ private struct FolderList: View {
                         FolderRow(
                             row: row, prefix: model.typedParent, theme: theme,
                             isSelected: index == model.selected,
-                            info: model.info(for: row)
+                            info: model.info(for: row),
+                            columns: columns
                         )
                         .id(index)
                         .onContinuousHover { phase in
@@ -327,10 +332,12 @@ private struct TrackScroll: ViewModifier {
 private struct FolderRow: View {
     let row: String
     let prefix: String
-    let theme: PaletteTheme
+    let theme: AppTheme
     let isSelected: Bool
     /// its branch, when it was last used and its claude sessions, for a known project
     var info: ProjectInfo?
+    /// which columns the list shows (any of its rows has them)
+    var columns: (time: Bool, sessions: Bool) = (true, true)
 
     var body: some View {
         let (parent, name) = split
@@ -339,7 +346,7 @@ private struct FolderRow: View {
             Image(systemName: "folder")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(isSelected ? theme.text : theme.icon)
-                .frame(width: PaletteView.barHeight - 16)
+                .frame(width: MainView.barHeight - 16)
                 .padding(.trailing, 8)
             (Text(parent).foregroundStyle(theme.textMuted)
                 + Text(name.hasSuffix("/") ? String(name.dropLast()) : name) // the trailing slash is for tab, not for reading
@@ -352,7 +359,7 @@ private struct FolderRow: View {
             if let info { meta(info) }
         }
         .padding(.trailing, 12)
-        .frame(height: PaletteView.rowHeight)
+        .frame(height: MainView.rowHeight)
         .background { if isSelected { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
@@ -369,12 +376,17 @@ private struct FolderRow: View {
                 }
                 .frame(maxWidth: 150, alignment: .trailing)
             }
-            Text(info.lastUsed.map { Ago.long($0) } ?? "")
-                .monospacedDigit()
-                .frame(width: 58, alignment: .trailing)
-            Text(info.sessions.isEmpty ? "" : info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions")
-                .monospacedDigit()
-                .frame(width: 74, alignment: .trailing)
+            // a column only when some row of the list fills it, so nothing sits empty
+            if columns.time {
+                Text(info.lastUsed.map { Ago.long($0) } ?? "")
+                    .monospacedDigit()
+                    .frame(width: 58, alignment: .trailing)
+            }
+            if columns.sessions {
+                Text(info.sessions.isEmpty ? "" : info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions")
+                    .monospacedDigit()
+                    .frame(width: 74, alignment: .trailing)
+            }
         }
         .font(theme.label)
         .foregroundStyle(theme.textMuted.opacity(0.8))
@@ -392,7 +404,7 @@ private struct FolderRow: View {
 }
 
 private struct ClaudeButtonStyle: ButtonStyle {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -457,19 +469,19 @@ struct ClaudeMark: View {
 /// a line of a list: an icon in the starburst's column, a title, its folder dimmed, something on the
 /// right; lit by the keys or the pointer
 private struct ListLine: View {
-    @ObservedObject var model: PaletteModel
+    @ObservedObject var model: MainModel
     let index: Int
     let icon: AnyView
     let title: String
     let folder: String?
     let trailing: AnyView
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         let on = index == model.selected
         HStack(spacing: 0) {
             icon
-                .frame(width: PaletteView.barHeight - 16)
+                .frame(width: MainView.barHeight - 16)
                 .padding(.trailing, 8)
             Text(title)
                 .font(theme.row)
@@ -489,7 +501,7 @@ private struct ListLine: View {
             trailing.font(theme.label).lineLimit(1)
         }
         .padding(.trailing, 12)
-        .frame(height: PaletteView.rowHeight)
+        .frame(height: MainView.rowHeight)
         .background { if on { LitRow(theme: theme) } }
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
@@ -501,7 +513,7 @@ private struct ListLine: View {
 
 /// a scrolling list that keeps the lit line in sight
 private struct ScrollingList<Content: View>: View {
-    @ObservedObject var model: PaletteModel
+    @ObservedObject var model: MainModel
     let lines: Int
     /// room for a section label among the lines
     var labelled = true
@@ -514,7 +526,7 @@ private struct ScrollingList<Content: View>: View {
                     .padding(.bottom, 6)
             }
             .scrollIndicators(.never)
-            .frame(height: CGFloat(min(lines, 10)) * PaletteView.rowHeight + (labelled ? 28 : 0) + 6)
+            .frame(height: CGFloat(min(lines, 10)) * MainView.rowHeight + (labelled ? 28 : 0) + 6)
             .onChange(of: model.selected) { _, i in
                 guard let i, !model.selectedByPointer else { return }
                 withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(i) }
@@ -526,8 +538,8 @@ private struct ScrollingList<Content: View>: View {
 /// what opens first: every claude code session running now, with its state as claude's code view
 /// shows it. enter goes to one.
 private struct RunningList: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
 
     var body: some View {
         ScrollingList(model: model, lines: model.live.count) {
@@ -546,8 +558,8 @@ private struct RunningList: View {
 
 /// a folder's step: a new session (lit), the sessions running there, then its past ones to resume
 private struct StepList: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
 
     var body: some View {
         let items = model.stepItems
@@ -606,7 +618,7 @@ enum StateWords {
     }
 
     /// needs input in claude code's warning yellow, working in the text colour, completed dimmed
-    static func colour(_ state: LiveSession.State, _ theme: PaletteTheme) -> Color {
+    static func colour(_ state: LiveSession.State, _ theme: AppTheme) -> Color {
         switch state {
         case .busy: theme.textRow
         case .waiting: Color(CC.warning)
@@ -647,7 +659,7 @@ private struct StateDot: View {
 struct SectionLabel: View {
     let title: String
     let hint: String
-    let theme: PaletteTheme
+    let theme: AppTheme
     var trailing: String?
 
     var body: some View {
@@ -689,7 +701,7 @@ enum Ago {
 
 /// the light behind the lit row, one shape that glides between rows when a namespace is given
 struct LitRow: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
     @Environment(\.litNamespace) private var namespace
 
     var body: some View {
@@ -713,5 +725,5 @@ extension EnvironmentValues {
 }
 
 extension Notification.Name {
-    static let paletteDidShow = Notification.Name("paletteDidShow")
+    static let windowDidShow = Notification.Name("windowDidShow")
 }

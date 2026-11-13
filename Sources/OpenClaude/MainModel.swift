@@ -1,13 +1,13 @@
 import AppKit
 import Combine
 
-/// the palette's state, in three moments, each with one purpose:
+/// the window's state, in three moments, each with one purpose:
 /// - opened: the claude code sessions running now. enter goes to one.
 /// - typing: folders. enter on one opens its step.
 /// - a folder's step: "new session" (lit), the sessions running there, then its past ones, with the
 ///   launch options below. enter starts, goes to or resumes. esc goes back to the folders.
 @MainActor
-final class PaletteModel: ObservableObject {
+final class MainModel: ObservableObject {
     enum Notice: Equatable {
         /// macOS said no to controlling terminal
         case notAllowed
@@ -43,7 +43,7 @@ final class PaletteModel: ObservableObject {
     /// changes with every new set of rows, so the list view starts fresh (top, same margins)
     @Published private(set) var listID = UUID()
 
-    /// the picked value of each launch option. every time the palette opens they start again from
+    /// the picked value of each launch option. every time the window opens they start again from
     /// claude's defaults, so a one-off choice never carries over to the next launch
     @Published private(set) var picks: [Int] = LaunchOptions.all.map { _ in 0 }
     /// the plan's session and weekly use, when claude code's sign-in can be read
@@ -63,7 +63,7 @@ final class PaletteModel: ObservableObject {
     private var projectsBuiltAt: Date?
     /// the newest recent when the projects were built: a folder opened since rebuilds them at once
     private var projectsNewestRecent: String?
-    /// claude code sessions running now on this mac, read again while the palette is open
+    /// claude code sessions running now on this mac, read again while the window is open
     @Published var live: [LiveSession] = []
     /// asks the panel to bring a running session forward
     var onFocus: (LiveSession) -> Void = { _ in }
@@ -203,7 +203,7 @@ final class PaletteModel: ObservableObject {
         }
     }
 
-    /// the shortcut pressed with the palette open: a new session now, in the folder open or lit, or
+    /// the shortcut pressed with the window open: a new session now, in the folder open or lit, or
     /// in the home folder
     func hotkeyAgain() { openNew() }
 
@@ -381,7 +381,7 @@ final class PaletteModel: ObservableObject {
         case .jumpDown: if count > 0 { selectedByPointer = false; selected = count - 1 }
         case .jumpUp: selected = nil
         case .escape:
-            // back out one step at a time: the folder's step, what is typed, then the palette
+            // back out one step at a time: the folder's step, what is typed, then the window
             if moment == .step { closeStep() } else if !text.isEmpty { text = "" } else { close() }
         case .enter: submit()
         case .openNew: openNew()

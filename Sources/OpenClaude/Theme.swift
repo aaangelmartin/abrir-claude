@@ -3,13 +3,13 @@ import CoreText
 import LaaabsKit
 import SwiftUI
 
-/// how the palette looks. claude's quick entry by default; the laaabs. look stays to compare:
+/// how the window looks. claude's quick entry by default; the laaabs. look stays to compare:
 ///
 ///     defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
 ///
-/// then reopen the app (⌘Q in the palette, open it again).
+/// then reopen the app (⌘Q in the window, open it again).
 @MainActor
-struct PaletteTheme {
+struct AppTheme {
     /// the bar's ground, top to bottom
     let gradientTop: Color
     let gradientBottom: Color
@@ -50,7 +50,7 @@ struct PaletteTheme {
 
     func say(_ s: String) -> String { lowercase ? s.lowercased() : s }
 
-    static let current: PaletteTheme = {
+    static let current: AppTheme = {
         switch UserDefaults.standard.string(forKey: "theme") {
         case "laaabs": return .laaabs()
         default: return .claude()
@@ -61,13 +61,13 @@ struct PaletteTheme {
     /// #403f3e at 95 % to #292523, a 0.5 px white ring at 20 %, the starburst in #d97757, anthropic
     /// sans 16 in white with a #a6a39b placeholder. rows follow claude's dark tokens (text-200
     /// #c2c0b6, text-500 #9c9a92). the fonts are read from the installed claude app, never copied.
-    static func claude() -> PaletteTheme {
+    static func claude() -> AppTheme {
         let hasFonts = ClaudeFonts.register()
         BrandFonts.register() // outfit, for the signature
         let sans: (CGFloat, Font.Weight) -> Font = { size, weight in
             hasFonts ? .custom("Anthropic Sans", size: size).weight(weight) : .system(size: size, weight: weight)
         }
-        return PaletteTheme(
+        return AppTheme(
             gradientTop: Color(hex: 0x403F3E).opacity(0.95),
             gradientBottom: Color(hex: 0x292523),
             ring: .white.opacity(0.20),
@@ -103,9 +103,9 @@ struct PaletteTheme {
     }
 
     /// the laaabs. look on the same bar: black, outfit, cyan only as the caret.
-    static func laaabs() -> PaletteTheme {
+    static func laaabs() -> AppTheme {
         BrandFonts.register()
-        return PaletteTheme(
+        return AppTheme(
             gradientTop: BrandColors.surfaceElevated.opacity(0.97),
             gradientBottom: BrandColors.surface,
             ring: BrandColors.hairline,

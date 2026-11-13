@@ -139,10 +139,10 @@ The global shortcut needs no Accessibility permission, since it uses `KeyboardSh
 ```
 Sources/OpenClaude/
   App.swift            launch, global shortcut, login item
-  PalettePanel.swift   floating panel that never activates the app, keys, position
-  PaletteView.swift    the window's content in SwiftUI
+  Panel.swift          floating panel that never activates the app, keys, position
+  MainView.swift       the window's content in SwiftUI
   Theme.swift          the two styles (claude and laaabs.) and loading Claude's fonts
-  PaletteModel.swift   text, rows, selection, notices, options
+  MainModel.swift      what is typed and listed, selection, notices, options
   FolderPath.swift     from what is typed to an absolute path and a shell command
   Suggestions.swift    folder completion and recents
   Projects.swift       known projects, claude's sessions, git branches and fuzzy matching

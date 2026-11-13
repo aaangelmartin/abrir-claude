@@ -3,17 +3,17 @@ import AppKit
 import SwiftUI
 import Testing
 
-/// renders the palette off screen to png, to look at it without opening a window. runs only with
+/// renders every view off screen to png, to look at it without opening a window. runs only with
 /// SNAPSHOT_DIR set: SNAPSHOT_DIR=/tmp/shots swift test --filter Snapshot
 @MainActor
 @Suite struct SnapshotTests {
     let dir = ProcessInfo.processInfo.environment["SNAPSHOT_DIR"]
 
-    private func shot(_ name: String, _ setUp: (PaletteModel) -> Void) {
+    private func shot(_ name: String, _ setUp: (MainModel) -> Void) {
         guard let dir else { return }
-        let model = PaletteModel()
+        let model = MainModel()
         setUp(model)
-        let view = NSHostingView(rootView: PaletteView(model: model).environment(\.colorScheme, .dark))
+        let view = NSHostingView(rootView: MainView(model: model).environment(\.colorScheme, .dark))
         view.appearance = NSAppearance(named: .darkAqua)
         let size = view.fittingSize
         view.frame = NSRect(origin: .zero, size: size)

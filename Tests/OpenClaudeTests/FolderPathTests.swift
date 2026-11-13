@@ -145,7 +145,7 @@ import Testing
 @MainActor
 @Suite struct MarkedDefaultTests {
     @Test func openingStartsFromTheDefaults() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(3, of: LaunchOptions.effort)
         m.pick(2, of: LaunchOptions.permissions)
         m.reset()
@@ -153,7 +153,7 @@ import Testing
     }
 
     @Test func pickingTheDefaultLevelAddsNoFlag() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(0, of: LaunchOptions.effort)
         let def = m.defaultValue(of: LaunchOptions.effort)
         #expect(m.shown(LaunchOptions.effort) == def)
@@ -164,7 +164,7 @@ import Testing
     }
 
     @Test func stepsNeverReachTheHiddenDefault() {
-        let m = PaletteModel()
+        let m = MainModel()
         m.pick(1, of: LaunchOptions.effort)
         m.step(LaunchOptions.effort, by: -1)
         #expect(m.shown(LaunchOptions.effort) == 1)
@@ -221,8 +221,8 @@ import Testing
 
 @MainActor
 @Suite struct FlowTests {
-    private func model(sessions: [SessionInfo] = [], live: [LiveSession] = []) -> PaletteModel {
-        let m = PaletteModel()
+    private func model(sessions: [SessionInfo] = [], live: [LiveSession] = []) -> MainModel {
+        let m = MainModel()
         let home = FolderPath.home
         m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: sessions)]
         m.live = live

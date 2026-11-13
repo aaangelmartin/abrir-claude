@@ -10,8 +10,8 @@ final class KeyPress: ObservableObject {
     @Published var shortcut = false
 }
 
-/// the first-run window, in the palette's own look: what the app does, a check of what it needs,
-/// the shortcut, and off you go. ⌘, in the palette opens it again.
+/// the first-run window, in the window's own look: what the app does, a check of what it needs,
+/// the shortcut, and off you go. ⌘, in the window opens it again.
 @MainActor
 final class OnboardingController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
@@ -19,13 +19,13 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     private let keys = KeyPress()
     /// the step shown, so the shortcut on the last one can finish
     private let state = OnboardingState()
-    /// called when it is done (or closed): the palette opens
+    /// called when it is done (or closed): the window opens
     var onFinish: () -> Void = {}
 
     var isVisible: Bool { window?.isVisible == true }
 
     /// the shortcut pressed while the setup is open: its caps go down, and on the last step it opens
-    /// the palette
+    /// the window
     func hotkey() {
         keys.shortcut = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak self] in
@@ -105,7 +105,7 @@ struct OnboardingView: View {
     init(step: Step) {
         self.init(state: OnboardingState(step: step))
     }
-    private let theme = PaletteTheme.current
+    private let theme = AppTheme.current
 
     var body: some View {
         VStack(spacing: 0) {
@@ -129,8 +129,8 @@ struct OnboardingView: View {
         }
         .frame(width: 560)
         .background(LinearGradient(colors: [theme.gradientTop, theme.gradientBottom], startPoint: .top, endPoint: .bottom))
-        .clipShape(RoundedRectangle(cornerRadius: PaletteView.radius))
-        .overlay(RoundedRectangle(cornerRadius: PaletteView.radius).strokeBorder(theme.ring, lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: MainView.radius))
+        .overlay(RoundedRectangle(cornerRadius: MainView.radius).strokeBorder(theme.ring, lineWidth: 0.5))
         .animation(.easeOut(duration: 0.18), value: step)
     }
 
@@ -169,7 +169,7 @@ struct OnboardingView: View {
 private struct StepTitle: View {
     let title: String
     let line: String
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -180,7 +180,7 @@ private struct StepTitle: View {
 }
 
 private struct WelcomeStep: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -221,7 +221,7 @@ private struct WelcomeStep: View {
 }
 
 private struct ChecksStep: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
     @State private var claude = Setup.claudeCode()
     @State private var terminal = Setup.terminal()
     @State private var signIn = Setup.signIn()
@@ -292,7 +292,7 @@ private struct ChecksStep: View {
 }
 
 private struct ShortcutStep: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
@@ -313,7 +313,7 @@ private struct ShortcutStep: View {
 }
 
 private struct DoneStep: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
     @EnvironmentObject private var keys: KeyPress
 
     /// a cap is down while its modifier is held, or with the whole shortcut
@@ -367,7 +367,7 @@ private struct DoneStep: View {
 // MARK: buttons
 
 private struct BrandButtonStyle: ButtonStyle {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -380,7 +380,7 @@ private struct BrandButtonStyle: ButtonStyle {
 }
 
 private struct QuietButtonStyle: ButtonStyle {
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
