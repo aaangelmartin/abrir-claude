@@ -1,4 +1,4 @@
-@testable import AbrirClaude
+@testable import OpenClaude
 import AppKit
 import SwiftUI
 import Testing
@@ -35,5 +35,15 @@ import Testing
     @Test func optionsPermissions() { shot("7-permissions") { m in m.reset(); m.pick(1, of: 0); m.pick(4, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
     @Test func optionsBypass() { shot("8-bypass") { m in m.reset(); m.pick(0, of: 1); m.pick(5, of: 2); _ = m.handle(.jumpDown); _ = m.handle(.down); _ = m.handle(.down) } }
     @Test func optionsAllDefaultOpen() { shot("9-defaults-open") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) }; _ = m.handle(.jumpDown) } }
+    private static func sample() -> [String: ProjectInfo] {
+        let home = FolderPath.home
+        let s = (0..<4).map { SessionInfo(id: "s\($0)", title: ["Add plan usage to the palette", "Fuzzy project search like T3 Code", "Fix the effort slider", "Translate everything to English"][$0], updated: Date().addingTimeInterval(-Double($0 + 1) * 5000)) }
+        return [
+            home + "/Developer/abrir-claude": ProjectInfo(path: home + "/Developer/abrir-claude", lastUsed: Date().addingTimeInterval(-600), sessions: s, branch: "feat/abrir-claude"),
+            home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date().addingTimeInterval(-86_400 * 2)),
+        ]
+    }
+    @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
+    @Test func sessions() { shot("11-sessions") { m in m.reset(); m.projects = Self.sample(); m.text = "abr"; m.openSessions(of: m.rows[0]); m.sessionSelected = 2 } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); for i in 0..<4 { m.pick(0, of: i) } } }
 }

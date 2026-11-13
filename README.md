@@ -1,4 +1,4 @@
-# abrir claude
+# open claude
 
 A global shortcut (⌥C) opens a palette that asks which folder to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
 
@@ -12,10 +12,21 @@ A global shortcut (⌥C) opens a palette that asks which folder to open Claude C
 | `/Volumes/disk/work` | that absolute path |
 | a folder that does not exist | Terminal shows the `cd` error and claude does not start |
 
+### Projects
+
+With nothing typed, the palette lists the folders used last, here or in Claude Code itself (from its sessions in `~/.claude/projects`). Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
+
+Each known project shows, on the right, its git branch, how long ago it was used and how many Claude sessions it has.
+
+### Sessions
+
+**→** on a highlighted project (with the caret at the end of the text), or a click on its session count, lists its Claude sessions in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
+
 Keys:
 - **⌥C** opens the palette. With the palette open, pressing it again acts as Enter: **⌥C ⌥C** opens Claude straight in your home folder.
 - **↵** opens what is typed, or the highlighted row once you have moved with the arrows.
 - **tab** completes with the highlighted row or the first suggestion, and lists that folder's subfolders.
+- **→** at the end of the text opens the highlighted project's sessions.
 - **↑ ↓** move through the suggestions. The list only scrolls when it has to, and keeps the next row peeking. Past the last one you reach the options.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
 - **esc**, **⌘W** or a click outside close the palette.
@@ -23,9 +34,9 @@ Keys:
 
 ### Model, effort, permissions and session
 
-On the right of the summary line sits the plan's use, as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Abrir Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+On the right of the summary line sits the plan's use, as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-At the bottom, one line says how Claude will be launched: **Model · Effort · Permissions · Session**, each value painted the way Claude Code paints it. **↓** past the last folder (or **⌘↓**, or a click) opens it into one row per option:
+At the bottom, one line says how Claude will be launched: **Model, Effort, Permissions, Session**, each value painted the way Claude Code paints it. **↓** past the last folder (or **⌘↓**, or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|
@@ -81,8 +92,8 @@ Anthropic Sans is loaded at launch from `/Applications/Claude.app`; it is not co
 The **laaabs.** style uses the same bar in black, with Outfit and a cyan caret. To switch:
 
 ```sh
-defaults write com.aaangelmartin.abrir-claude theme laaabs   # or claude
-pkill -x AbrirClaude; open ~/Applications/"Abrir Claude.app"
+defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
+pkill -x OpenClaude; open ~/Applications/"Open Claude.app"
 ```
 
 ## Install
@@ -93,13 +104,13 @@ Requirements:
 - `claude` on a login shell's PATH (`zsh -lic 'command -v claude'`)
 
 ```sh
-cd ~/Developer/abrir-claude
+cd ~/Developer/open-claude
 ./scripts/install.sh
 ```
 
 The script:
 1. Builds for arm64 and x86_64.
-2. Assembles `build/Abrir Claude.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
+2. Assembles `build/Open Claude.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
 3. Signs with the first valid "Developer ID Application" certificate in the keychain. `SIGN_IDENTITY=-` signs ad hoc.
 4. Installs it in `~/Applications` and opens it.
 
@@ -115,7 +126,7 @@ The global shortcut needs no Accessibility permission, since it uses `KeyboardSh
 ## Layout
 
 ```
-Sources/AbrirClaude/
+Sources/OpenClaude/
   App.swift            launch, global shortcut, login item
   PalettePanel.swift   floating panel that never activates the app, keys, position
   PaletteView.swift    the palette in SwiftUI
@@ -123,6 +134,8 @@ Sources/AbrirClaude/
   PaletteModel.swift   text, rows, selection, notices, options
   FolderPath.swift     from what is typed to an absolute path and a shell command
   Suggestions.swift    folder completion and recents
+  Projects.swift       known projects, claude's sessions, git branches and fuzzy matching
+  Usage.swift          the plan's session and weekly use
   Terminal.swift       the AppleScript that opens the Terminal window
   LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
   ModelVersions.swift  the newest model numbers, read from the installed claude
@@ -136,8 +149,8 @@ Tests/                 paths, suggestions, selection, options and model versions
 ## Uninstall
 
 ```sh
-pkill -x AbrirClaude
-rm -rf ~/Applications/"Abrir Claude.app"
+pkill -x OpenClaude
+rm -rf ~/Applications/"Open Claude.app"
 ```
 
 Then remove it from System Settings → General → Login Items if it is still listed.

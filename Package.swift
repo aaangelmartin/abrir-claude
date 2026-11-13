@@ -1,10 +1,10 @@
 // swift-tools-version: 6.2
-// abrir claude: a hotkey (control option command c) opens a laaabs. palette that asks for a folder
+// open claude: a hotkey (control option command c) opens a laaabs. palette that asks for a folder
 // and starts claude code there in a new terminal window.
 import PackageDescription
 
 let package = Package(
-    name: "AbrirClaude",
+    name: "OpenClaude",
     platforms: [.macOS(.v14)],
     dependencies: [
         // the laaabs. kit, from the brand folder on this mac
@@ -14,13 +14,13 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "AbrirClaude",
+            name: "OpenClaude",
             dependencies: [
                 .product(name: "LaaabsKit", package: "ui-swift"),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/AbrirClaude"
+            path: "Sources/OpenClaude"
         ),
-        .testTarget(name: "AbrirClaudeTests", dependencies: ["AbrirClaude"], path: "Tests/AbrirClaudeTests"),
+        .testTarget(name: "OpenClaudeTests", dependencies: ["OpenClaude"], path: "Tests/OpenClaudeTests"),
     ]
 )

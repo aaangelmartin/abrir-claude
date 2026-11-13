@@ -79,10 +79,7 @@ struct OptionsSection: View {
             }
             item(LaunchOptions.effort) {
                 let choice = model.choice(of: LaunchOptions.effort)
-                HStack(spacing: 5) {
-                    Text(theme.say("Effort")).foregroundStyle(theme.textMuted)
-                    PaintedText(text: choice.label, paint: choice.paint, font: theme.chip, bold: true)
-                }
+                PaintedText(text: choice.label, paint: choice.paint, font: theme.chip, bold: true)
             }
             item(LaunchOptions.permissions) {
                 let choice = model.choice(of: LaunchOptions.permissions)

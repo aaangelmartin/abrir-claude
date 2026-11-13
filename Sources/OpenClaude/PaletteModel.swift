@@ -42,6 +42,18 @@ final class PaletteModel: ObservableObject {
     @Published private(set) var modelVersions: [String: String] = ModelVersions.cached(for: ModelVersions.binary()) ?? [:]
     private var versionsBinary: String?
 
+    /// every folder worth offering, with its sessions and branch (built in the background)
+    @Published var projects: [String: ProjectInfo] = [:]
+    private var projectsBuiltAt: Date?
+    /// the newest recent when the projects were built: a folder opened since rebuilds them at once
+    private var projectsNewestRecent: String?
+    /// the folder whose claude sessions are listed instead of the folders, nil for the folders
+    @Published private(set) var sessionsFolder: String?
+    /// the lit line in the sessions: 0 is a new session, then each session newest first
+    @Published var sessionSelected = 0
+    /// whether the field's caret is at the end of what is typed (→ there opens a folder's sessions)
+    var caretAtEnd: () -> Bool = { true }
+
     init() { refreshModelVersions() }
 
     /// asks the panel to open a folder (raw, as typed, with the flags) or to close
@@ -58,6 +70,8 @@ final class PaletteModel: ObservableObject {
 
     func reset() {
         refreshModelVersions()
+        refreshProjects()
+        sessionsFolder = nil
         refreshUsage()
         picks = LaunchOptions.all.map { _ in 0 }
         notice = nil
@@ -69,20 +83,117 @@ final class PaletteModel: ObservableObject {
     private func textChanged() {
         // typing always happens in the field: the arrows go back there
         optionRow = nil
+        sessionsFolder = nil
         refreshRows()
     }
 
     func refreshRows() {
         listID = UUID()
-        if text.trimmingCharacters(in: .whitespaces).isEmpty {
-            rows = Recents.all
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        if typed.isEmpty {
+            rows = recentRows()
             showingRecents = !rows.isEmpty
-        } else {
+        } else if typed.contains("/") || typed.hasPrefix("~") {
+            // a path being typed: its subfolders, as a shell completes them
             rows = Suggestions.completions(for: text)
+            showingRecents = false
+        } else {
+            rows = fuzzyRows(typed)
             showingRecents = false
         }
         selectedByPointer = false
         selected = Self.defaultSelection(text: text, rows: rows)
+    }
+
+    // MARK: projects
+
+    /// rebuilds the projects at most every two minutes, off the main thread
+    func refreshProjects() {
+        let newest = Recents.all.first
+        if let at = projectsBuiltAt, Date().timeIntervalSince(at) < 120, newest == projectsNewestRecent { return }
+        projectsBuiltAt = Date()
+        projectsNewestRecent = newest
+        let recents = Recents.dates
+        Task.detached(priority: .userInitiated) {
+            let built = ProjectIndex.build(recents: recents)
+            await MainActor.run {
+                self.projects = built
+                if self.sessionsFolder == nil, self.optionRow == nil { self.refreshRows() }
+            }
+        }
+    }
+
+    /// what a row is, when it is a known project
+    func info(for row: String) -> ProjectInfo? {
+        projects[ProjectIndex.trimmed(FolderPath.resolve(row))]
+    }
+
+    /// with nothing typed: the folders used last, here or in claude, newest first
+    private func recentRows() -> [String] {
+        let known = projects.values
+            .filter { $0.lastUsed != nil }
+            .sorted { $0.lastUsed! > $1.lastUsed! }
+            .prefix(12)
+            .map { FolderPath.display($0.path) }
+        return known.isEmpty ? Recents.all : Array(known)
+    }
+
+    /// a name typed, not a path: the home folder's own folders and every known project, matched
+    /// fuzzily (letters in order, anywhere), the best first and the recently used a little ahead
+    private func fuzzyRows(_ typed: String) -> [String] {
+        var candidates: [String: Date?] = [:]
+        for row in Suggestions.completions(for: "", allIn: FolderPath.home) { candidates[row] = .some(nil) }
+        // every row ends in "/" so tab goes on into it
+        for p in projects.values { candidates[FolderPath.display(p.path) + "/"] = p.lastUsed }
+        let now = Date()
+        let scored: [(String, Int)] = candidates.compactMap { row, used in
+            guard let s = Fuzzy.score(typed, row) else { return nil }
+            let days = used.flatMap { $0 }.map { now.timeIntervalSince($0) / 86_400 } ?? 1_000
+            let recency = days < 1 ? 14 : days < 7 ? 9 : days < 30 ? 4 : 0
+            return (row, s + recency)
+        }
+        return scored
+            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0.localizedStandardCompare($1.0) == .orderedAscending }
+            .prefix(60)
+            .map(\.0)
+    }
+
+    // MARK: sessions
+
+    var sessionList: [SessionInfo] { sessionsFolder.flatMap { info(for: $0)?.sessions } ?? [] }
+
+    /// list a folder's claude sessions in place of the folders
+    func openSessions(of row: String) {
+        guard info(for: row)?.sessions.isEmpty == false else { return }
+        sessionSelected = 0
+        sessionsFolder = row
+    }
+
+    func closeSessions() { sessionsFolder = nil }
+
+    /// open claude in the folder: a new session (0) or one of its sessions resumed
+    func openSession(_ index: Int) {
+        guard let folder = sessionsFolder else { return }
+        var picksForNew = picks
+        picksForNew[LaunchOptions.session] = 0
+        if index == 0 { onOpen(folder, LaunchOptions.args(for: picksForNew)); return }
+        let list = sessionList
+        guard list.indices.contains(index - 1) else { return }
+        onOpen(folder, LaunchOptions.args(for: picksForNew) + ["--resume", list[index - 1].id])
+    }
+
+    private func handleSessions(_ key: Key) -> Bool {
+        let last = sessionList.count
+        switch key {
+        case .up: sessionSelected = max(0, sessionSelected - 1)
+        case .down: sessionSelected = min(last, sessionSelected + 1)
+        case .jumpUp: sessionSelected = 0
+        case .jumpDown: sessionSelected = last
+        case .enter: openSession(sessionSelected)
+        case .left, .escape: closeSessions()
+        case .right, .tab, .space: break
+        }
+        return true
     }
 
     /// what is lit before any key or pointer moves: the first match, so tab and enter take what is seen.
@@ -133,7 +244,7 @@ final class PaletteModel: ObservableObject {
     /// asks for the plan's use again, at most once a minute
     func refreshUsage() {
         // only the installed app reads the keychain (tests and previews would make macOS ask)
-        guard Bundle.main.bundleIdentifier == "com.aaangelmartin.abrir-claude" else { return }
+        guard Bundle.main.bundleIdentifier == "com.aaangelmartin.open-claude" else { return }
         if let at = usageFetchedAt, Date().timeIntervalSince(at) < 60 { return }
         usageFetchedAt = Date()
         Task.detached(priority: .utility) {
@@ -203,6 +314,7 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
+        if sessionsFolder != nil, optionRow == nil { return handleSessions(key) }
         if let optionRow { return handleOptions(key, optionRow) }
         return handleField(key)
     }
@@ -226,7 +338,12 @@ final class PaletteModel: ObservableObject {
         case .tab: complete()
         case .enter: submit()
         case .escape: close()
-        case .left, .right, .space: return false // the caret and spaces belong to the field
+        case .right:
+            // → at the end of the text opens the lit folder's sessions; elsewhere it moves the caret
+            guard caretAtEnd(), let selected, rows.indices.contains(selected),
+                  info(for: rows[selected])?.sessions.isEmpty == false else { return false }
+            openSessions(of: rows[selected])
+        case .left, .space: return false // the caret and spaces belong to the field
         }
         return true
     }

@@ -26,7 +26,10 @@ struct PaletteView: View {
                 noticeView(notice)
             }
 
-            if !model.rows.isEmpty {
+            if model.sessionsFolder != nil {
+                divider
+                SessionList(model: model, theme: theme)
+            } else if !model.rows.isEmpty {
                 divider
                 rowsView
             }
@@ -101,7 +104,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight)
             Group {
                 switch notice {
-                case .notAllowed: Text(theme.say("Abrir Claude needs permission to control Terminal."))
+                case .notAllowed: Text(theme.say("Open Claude needs permission to control Terminal."))
                 case let .failed(message): Text(theme.say("Terminal did not respond: ") + message)
                 }
             }
@@ -151,7 +154,9 @@ private struct FolderList: View {
                     ForEach(Array(model.rows.enumerated()), id: \.element) { index, row in
                         FolderRow(
                             row: row, prefix: model.typedParent, theme: theme,
-                            isSelected: index == model.selected
+                            isSelected: index == model.selected,
+                            info: model.info(for: row),
+                            openSessions: { model.openSessions(of: row) }
                         )
                         .id(index)
                         .onContinuousHover { phase in
@@ -277,6 +282,9 @@ private struct FolderRow: View {
     let prefix: String
     let theme: PaletteTheme
     let isSelected: Bool
+    /// its branch, when it was last used and its claude sessions, for a known project
+    var info: ProjectInfo?
+    var openSessions: () -> Void = {}
 
     var body: some View {
         let (parent, name) = split
@@ -293,8 +301,11 @@ private struct FolderRow: View {
                 .font(theme.row)
                 .lineLimit(1)
                 .truncationMode(.head)
-            Spacer(minLength: 0)
+                .layoutPriority(1)
+            Spacer(minLength: 12)
+            if let info { meta(info) }
         }
+        .padding(.trailing, 10)
         .frame(height: PaletteView.rowHeight)
         .background(
             isSelected ? theme.rowSelected : .clear,
@@ -302,6 +313,35 @@ private struct FolderRow: View {
         )
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
+    }
+
+    /// on the right: the branch, how long ago it was used, and its sessions (click, or → when lit)
+    private func meta(_ info: ProjectInfo) -> some View {
+        HStack(spacing: 12) {
+            if let branch = info.branch {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5))
+                    Text(branch).lineLimit(1).truncationMode(.middle)
+                }
+                .frame(maxWidth: 140, alignment: .trailing)
+            }
+            if let used = info.lastUsed { Text(Ago.short(used)).monospacedDigit() }
+            if !info.sessions.isEmpty {
+                HStack(spacing: 3) {
+                    Text("\(info.sessions.count)").monospacedDigit()
+                    Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
+                }
+                .padding(.horizontal, 6)
+                .frame(height: 20)
+                .background(isSelected ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 5))
+                .contentShape(Rectangle())
+                .onTapGesture(perform: openSessions)
+                .help(isSelected ? "Sessions (→)" : "Sessions")
+            }
+        }
+        .font(theme.label)
+        .foregroundStyle(isSelected ? theme.textSecondary : theme.textMuted.opacity(0.8))
+        .lineLimit(1)
     }
 
     /// "Developer/Priv8/" with "Developer/" typed: ("Developer/", "Priv8/"). recents have no typed
@@ -348,6 +388,97 @@ struct ClaudeMark: View {
         }
         .aspectRatio(contentMode: .fit)
         .foregroundStyle(color)
+    }
+}
+
+/// a folder's claude sessions, in place of the folders: a header with the folder (← goes back), then
+/// a new session and each session newest first, by title, with how long ago it ran. enter opens the
+/// lit one (claude --resume for a session); the launch options below still apply.
+private struct SessionList: View {
+    @ObservedObject var model: PaletteModel
+    let theme: PaletteTheme
+
+    var body: some View {
+        let sessions = model.sessionList
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.left").font(.system(size: 10, weight: .semibold))
+                Text(model.sessionsFolder.map { $0.hasSuffix("/") ? String($0.dropLast()) : $0 } ?? "")
+                    .foregroundStyle(theme.textRow)
+                if let branch = model.sessionsFolder.flatMap({ model.info(for: $0)?.branch }) {
+                    Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5)).padding(.leading, 6)
+                    Text(branch)
+                }
+                Spacer()
+                Text(theme.say("\(sessions.count) sessions"))
+            }
+            .font(theme.label)
+            .foregroundStyle(theme.textMuted)
+            .padding(.leading, 22)
+            .padding(.trailing, 20)
+            .frame(height: 30)
+            .contentShape(Rectangle())
+            .onTapGesture { model.closeSessions() }
+
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 0) {
+                        line(0, icon: "plus", title: theme.say("New session"), time: nil)
+                        ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
+                            line(i + 1, icon: "text.bubble", title: s.title, time: Ago.short(s.updated))
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+                .scrollIndicators(.never)
+                .frame(height: CGFloat(min(sessions.count + 1, PaletteView.visibleRows)) * PaletteView.rowHeight + 12)
+                .onChange(of: model.sessionSelected) { _, i in
+                    withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(i) }
+                }
+            }
+        }
+    }
+
+    private func line(_ index: Int, icon: String, title: String, time: String?) -> some View {
+        let on = index == model.sessionSelected
+        return HStack(spacing: 0) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(on ? theme.text : theme.icon)
+                .frame(width: PaletteView.barHeight - 16)
+                .padding(.trailing, 8)
+            Text(title)
+                .font(theme.row)
+                .foregroundStyle(on ? theme.text : theme.textRow)
+                .lineLimit(1)
+            Spacer(minLength: 12)
+            if let time {
+                Text(time).font(theme.label).monospacedDigit().foregroundStyle(theme.textMuted)
+            }
+        }
+        .padding(.trailing, 12)
+        .frame(height: PaletteView.rowHeight)
+        .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 8)
+        .contentShape(Rectangle())
+        .id(index)
+        .onHover { if $0 { model.sessionSelected = index } }
+        .onTapGesture { model.openSession(index) }
+    }
+}
+
+/// how long ago, as short as a list wants it: now, 5m, 3h, 2d, 3w, 4mo
+enum Ago {
+    static func short(_ date: Date, now: Date = Date()) -> String {
+        let s = max(0, now.timeIntervalSince(date))
+        switch s {
+        case ..<60: return "now"
+        case ..<3600: return "\(Int(s / 60))m"
+        case ..<86_400: return "\(Int(s / 3600))h"
+        case ..<(86_400 * 14): return "\(Int(s / 86_400))d"
+        case ..<(86_400 * 60): return "\(Int(s / 604_800))w"
+        default: return "\(Int(s / 2_592_000))mo"
+        }
     }
 }
 

@@ -14,8 +14,19 @@ private let openClaudeShortcut = KeyboardShortcuts.Shortcut(.c, modifiers: [.opt
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var palette: PaletteController?
 
+    /// the app was "Abrir Claude" (com.aaangelmartin.abrir-claude) before: its recent folders come along once
+    private static func bringOverRecents() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "recentFolders") == nil,
+              let old = UserDefaults(suiteName: "com.aaangelmartin.abrir-claude") else { return }
+        for key in ["recentFolders", "recentFolderDates", "barTopLeft", "theme"] {
+            if let value = old.object(forKey: key) { defaults.set(value, forKey: key) }
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = Self.editMenu()
+        Self.bringOverRecents()
         let palette = PaletteController()
         self.palette = palette
         KeyboardShortcuts.setShortcut(openClaudeShortcut, for: .openClaude)

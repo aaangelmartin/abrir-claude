@@ -1,7 +1,7 @@
 import Foundation
 
 /// opens a new terminal window and runs a command in it, through apple events. the first time macOS
-/// asks whether abrir claude may control terminal.
+/// asks whether open claude may control terminal.
 enum Terminal {
     enum Failure: Error {
         /// the user said no to controlling terminal, or has not been asked yet in a way that stuck
@@ -12,11 +12,11 @@ enum Terminal {
     @MainActor
     static func run(_ command: String) -> Result<Void, Failure> {
         let source = """
-        set orden to "\(appleScriptEscaped(command))"
-        set yaAbierta to application "Terminal" is running
+        set theCommand to "\(appleScriptEscaped(command))"
+        set wasRunning to application "Terminal" is running
         tell application "Terminal"
-            if yaAbierta then
-                do script orden
+            if wasRunning then
+                do script theCommand
             else
                 -- a terminal that was closed opens its own first window: use that one, not a second
                 launch
@@ -25,9 +25,9 @@ enum Terminal {
                     delay 0.05
                 end repeat
                 if (count of windows) > 0 then
-                    do script orden in window 1
+                    do script theCommand in window 1
                 else
-                    do script orden
+                    do script theCommand
                 end if
             end if
             activate

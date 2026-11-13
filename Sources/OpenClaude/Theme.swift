@@ -5,7 +5,7 @@ import SwiftUI
 
 /// how the palette looks. claude's quick entry by default; the laaabs. look stays to compare:
 ///
-///     defaults write com.aaangelmartin.abrir-claude theme laaabs   # or claude
+///     defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
 ///
 /// then reopen the app (⌘Q in the palette, open it again).
 @MainActor
