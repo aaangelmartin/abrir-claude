@@ -122,7 +122,7 @@ struct OptionsSection: View {
 
 /// the plan's use, as claude code's /usage gives it: the five-hour session and the week, quiet until
 /// they near the limit (yellow from 80 %, red from 95 %). hover for when each resets.
-private struct UsageLine: View {
+struct UsageLine: View {
     let usage: Usage
     let theme: PaletteTheme
 

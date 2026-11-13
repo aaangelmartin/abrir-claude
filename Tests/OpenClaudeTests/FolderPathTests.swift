@@ -83,6 +83,17 @@ import Testing
         #expect(opened == "Developer")
     }
 
+    @Test func enterOnAFolderWithoutSessionsStillAsks() {
+        let m = PaletteModel()
+        var opened = false
+        m.onOpen = { _, _ in opened = true }
+        m.text = "Developer"
+        m.projects = [:]
+        _ = m.handle(.enter)
+        #expect(m.sessionsFolder == "Developer")
+        #expect(!opened)
+    }
+
     @Test func commandEnterOpensANewSessionAtOnce() {
         let m = PaletteModel()
         let home = FolderPath.home

@@ -217,12 +217,15 @@ final class PaletteModel: ObservableObject {
 
     /// list a folder's claude sessions in place of the folders
     func openSessions(of row: String) {
-        guard info(for: row)?.sessions.isEmpty == false else { return }
         sessionSelected = 0
+        optionRow = nil
         sessionsFolder = row
     }
 
-    func closeSessions() { sessionsFolder = nil }
+    func closeSessions() {
+        sessionsFolder = nil
+        optionRow = nil
+    }
 
     /// open claude in the folder: a new session (0) or one of its sessions resumed
     func openSession(_ index: Int) {
@@ -356,8 +359,8 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
-        // the options open and fold from anywhere
-        if key == .optionsDown { optionRow = optionRow ?? 0; return true }
+        // the options belong to the open step (a folder picked): they open and fold there
+        if sessionsFolder != nil, key == .optionsDown { optionRow = optionRow ?? 0; return true }
         if key == .optionsUp { optionRow = nil; return true }
         if sessionsFolder != nil, optionRow == nil { return handleSessions(key) }
         if let optionRow { return handleOptions(key, optionRow) }
@@ -432,7 +435,7 @@ final class PaletteModel: ObservableObject {
         case .jumpDown: optionRow = last
         case .left: step(row, by: -1)
         case .right: step(row, by: 1)
-        case .enter: submit()
+        case .enter: if sessionsFolder != nil { openSession(sessionSelected) } else { submit() }
         case .openNew: openNew()
         case .space, .optionsDown, .optionsUp: break // the field keeps its text
         }
@@ -448,16 +451,11 @@ final class PaletteModel: ObservableObject {
 
     /// enter: the lit row, or what is typed. a name that is no folder (typed to search) with nothing
     /// lit opens nothing: a terminal with a cd error helps no one.
-    /// enter on a folder with claude sessions lists them (a new one first) to pick from; a folder
-    /// without any opens straight away.
+    /// enter on a folder goes to the open step: a new session or one of its past ones, with the
+    /// launch options below
     func submit() {
         guard targetIsOpenable else { NSSound.beep(); return }
-        if info(for: target)?.sessions.isEmpty == false {
-            optionRow = nil
-            openSessions(of: target)
-        } else {
-            onOpen(target, LaunchOptions.args(for: picks))
-        }
+        openSessions(of: target)
     }
 
     /// ⌘↵, or the shortcut again: a new session in the folder now, without the list

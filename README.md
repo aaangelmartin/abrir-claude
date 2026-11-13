@@ -14,7 +14,7 @@ A global shortcut (⌥C) opens a palette that asks which folder to open Claude C
 
 ### Active sessions
 
-With nothing typed, the palette first lists the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows a dot and a word for what it is doing: **Working** (pulsing clay), **Needs permission** or **Needs you** (yellow), **Running a command** (lavender) or **Idle** (grey), with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
+With nothing typed, the palette first lists the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows what it is doing in Claude Code's own words and colours, as its agent view (`claude agents`) shows them: **Working** with Claude's spinner (`· ✢ ✳ ✶ ✻ ✽` in its orange), **Needs input** in its warning yellow, or **Idle** dimmed; with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
 
 - **↵** goes to the session: its Terminal tab is brought forward, or the app it runs in when it is not in Terminal.
 - **⌘↵** opens a new session in that session's folder.
@@ -29,13 +29,13 @@ Each known project shows on the right, in columns that line up, its git branch, 
 
 ### Sessions
 
-**↵** on a folder with Claude sessions (or **→** with the caret at the end of the text, or a click on its session count) lists its Claude sessions in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
+**↵** on a folder (or **→** with the caret at the end of the text, or a click on its session count) moves to the open step, in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
 
 Keys:
 - **⌥C** opens the palette. With the palette open, pressing it again opens a new session at once: **⌥C ⌥C** opens Claude straight in your home folder.
 - **⌘↵** opens a new session at once, without the session list.
 - **⌥↓** opens the options at the bottom, **⌥↑** folds them.
-- **↵** on a folder with Claude sessions lists them (a new session first); on one without any it opens Claude straight away. It acts on the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
+- **↵** on a folder goes to the open step: a new session or one of its past ones, with the launch options below. It acts on the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
 - **tab** completes with the highlighted row and lists that folder's subfolders. With no row highlighted it does nothing.
 - **→** at the end of the text also lists the highlighted project's sessions.
 - **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. The last row is the end of the list.
@@ -45,9 +45,9 @@ Keys:
 
 ### Model, effort, permissions and session
 
-On the right of the summary line sits the plan's use, as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+On the first screen the bottom line shows only the plan's use; in the open step it sits on the right of the options. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-At the bottom, one line says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
+In the open step (after **↵** on a folder), the line at the bottom says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|

@@ -41,8 +41,20 @@ struct PaletteView: View {
                 }
             }
 
-            divider
-            OptionsSection(model: model, theme: theme)
+            // what to launch with matters only once a folder is picked: the options live in that step,
+            // the first screen only shows the plan's use
+            if model.sessionsFolder != nil {
+                divider
+                OptionsSection(model: model, theme: theme)
+            } else if let usage = model.usage {
+                divider
+                HStack {
+                    Spacer()
+                    UsageLine(usage: usage, theme: theme)
+                }
+                .padding(.trailing, 20)
+                .frame(height: 36)
+            }
         }
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
@@ -89,7 +101,10 @@ struct PaletteView: View {
         VStack(alignment: .leading, spacing: 0) {
             if model.showingRecents || !model.shownLive.isEmpty {
                 // lined up with the folder names, close to the rows it names
-                Text(theme.say(model.showingRecents ? "Recent" : "Folders"))
+                HStack(spacing: 10) {
+                    Text(theme.say(model.showingRecents ? "Recent" : "Folders"))
+                    Text(theme.say("↵ open")).foregroundStyle(theme.textMuted.opacity(0.55))
+                }
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(theme.textMuted.opacity(0.85))
                     .padding(.leading, Self.barHeight)
@@ -418,14 +433,14 @@ private struct SessionList: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "chevron.left").font(.system(size: 10, weight: .semibold))
-                Text(model.sessionsFolder.map { $0.hasSuffix("/") ? String($0.dropLast()) : $0 } ?? "")
+                Text(model.sessionsFolder.map { $0.isEmpty ? "~" : $0.hasSuffix("/") ? String($0.dropLast()) : $0 } ?? "")
                     .foregroundStyle(theme.textRow)
                 if let branch = model.sessionsFolder.flatMap({ model.info(for: $0)?.branch }) {
                     Image(systemName: "arrow.triangle.branch").font(.system(size: 9.5)).padding(.leading, 6)
                     Text(branch)
                 }
                 Spacer()
-                Text(theme.say("\(sessions.count) sessions"))
+                Text(theme.say(sessions.isEmpty ? "No past sessions" : sessions.count == 1 ? "1 past session" : "\(sessions.count) past sessions"))
             }
             .font(theme.label)
             .foregroundStyle(theme.textMuted)
@@ -440,7 +455,7 @@ private struct SessionList: View {
                     LazyVStack(spacing: 0) {
                         line(0, icon: "plus", title: theme.say("New session"), time: nil)
                         ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
-                            line(i + 1, icon: "text.bubble", title: s.title, time: Ago.short(s.updated))
+                            line(i + 1, icon: "text.bubble", title: s.title, time: Ago.long(s.updated))
                         }
                     }
                     .padding(.vertical, 6)
@@ -491,8 +506,9 @@ private struct ActiveList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 10) {
                 Text(theme.say("Active"))
+                Text(theme.say("↵ go to it")).foregroundStyle(theme.textMuted.opacity(0.55))
                 Spacer()
                 if model.live.count > sessions.count, model.text.isEmpty {
                     Text(theme.say("\(model.live.count - sessions.count) more, type to find them"))
@@ -552,45 +568,47 @@ private struct ActiveList: View {
         .help("↵ go to it   ⌘↵ new session in \(folder.isEmpty ? "~" : folder)")
     }
 
+    /// claude code's own words for a session in its agent view
     static func label(_ s: LiveSession) -> String {
         switch s.state {
-        case .busy: "Working"
-        case .waiting: s.waitingFor.map { "Needs \($0)" } ?? "Needs you"
-        case .shell: "Running a command"
+        case .busy, .shell: "Working"
+        case .waiting: "Needs input"
         case .idle: "Idle"
         }
     }
 
+    /// and its colours: working in the text colour, needs input in its warning yellow, idle dimmed
     static func colour(_ state: LiveSession.State, _ theme: PaletteTheme) -> Color {
         switch state {
-        case .busy: Color(hex: 0xD97757)
+        case .busy, .shell: theme.textRow
         case .waiting: Color(CC.warning)
-        case .shell: Color(CC.permission)
-        case .idle: theme.textMuted
+        case .idle: theme.textMuted.opacity(0.75)
         }
     }
 }
 
-/// a session's state as a dot: working pulses in clay, needing you is a steady yellow
+/// a session's state as claude code draws it: working is its spinner (· ✢ ✳ ✶ ✻ ✽ and back, in
+/// claude's orange), needs input a yellow dot, idle a dim one
 private struct StateDot: View {
     let state: LiveSession.State
+    private static let frames = ["·", "✢", "✳", "✶", "✻", "✽"]
+    private static let cycle = frames + frames.reversed()
 
     var body: some View {
-        let colour: Color = switch state {
-        case .busy: Color(hex: 0xD97757)
-        case .waiting: Color(CC.warning)
-        case .shell: Color(CC.permission)
-        case .idle: Color.white.opacity(0.28)
-        }
-        ZStack {
-            if state == .busy || state == .waiting {
-                TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-                    let t = context.date.timeIntervalSinceReferenceDate
-                    let phase = (sin(t * (state == .busy ? 4 : 2)) + 1) / 2
-                    Circle().fill(colour.opacity(0.35 * (1 - phase))).frame(width: 8 + 8 * phase, height: 8 + 8 * phase)
+        Group {
+            switch state {
+            case .busy, .shell:
+                TimelineView(.periodic(from: .now, by: 0.12)) { context in
+                    let i = Int(context.date.timeIntervalSinceReferenceDate / 0.12) % Self.cycle.count
+                    Text(Self.cycle[i])
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(hex: 0xD77757))
                 }
+            case .waiting:
+                Text("●").font(.system(size: 9)).foregroundStyle(Color(CC.warning))
+            case .idle:
+                Text("●").font(.system(size: 9)).foregroundStyle(Color.white.opacity(0.25))
             }
-            Circle().fill(colour).frame(width: 8, height: 8)
         }
         .frame(width: 18, height: 18)
     }
