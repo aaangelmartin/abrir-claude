@@ -82,10 +82,12 @@ struct OptionsSection: View {
                     keys.transition(.opacity)
                 } else {
                     HStack(spacing: 2) {
-                        launchValues
+                        // the key first, then what it opens
                         KeyCap(key: "⌥↓", theme: theme)
-                            .padding(.leading, 4)
+                            .padding(.leading, 8)
+                            .padding(.trailing, 2)
                             .help("Change model, effort and permissions")
+                        launchValues
                     }
                     .transition(.opacity)
                 }
