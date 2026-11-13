@@ -134,15 +134,9 @@ struct OnboardingView: View {
         .animation(.easeOut(duration: 0.18), value: step)
     }
 
+    /// the steps on the left, the buttons on the right, and the aaangelmartin wordmark centred in the
+    /// room between them
     private var footer: some View {
-        ZStack {
-            // the aaangelmartin wordmark, centred in the footer on every step
-            Signature().frame(height: 11)
-            footerControls
-        }
-    }
-
-    private var footerControls: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
                 ForEach(Step.allCases, id: \.self) { s in
@@ -151,7 +145,9 @@ struct OnboardingView: View {
                         .frame(width: s == step ? 16 : 6, height: 6)
                 }
             }
-            Spacer()
+            Spacer(minLength: 12)
+            Signature().frame(height: 11)
+            Spacer(minLength: 12)
             if step != .welcome {
                 Button(theme.say("Back")) { move(-1) }
                     .buttonStyle(QuietButtonStyle(theme: theme))

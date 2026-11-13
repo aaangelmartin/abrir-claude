@@ -117,15 +117,15 @@ struct OptionsSection: View {
     private var keys: some View {
         // the same width whatever is lit, so nothing moves as the arrows go
         let lit = model.selected != nil
-        // what never changes first, what follows the arrows last: the gap stays the same and nothing
-        // shifts. the shortcut also starts a session; only ⌘↵ is drawn
+        // the arrows' key first, new session after it, a steady gap between them. the shortcut also
+        // starts a session; only ⌘↵ is drawn
         return HStack(spacing: 24) {
-            KeyHint(keys: ["⌘↵"], label: "New session", theme: theme)
-                .help(lit ? "Start a new session in that session's folder (or press \(Self.shortcutText))" : "Start a new session in your home folder (or press \(Self.shortcutText))")
             if !model.live.isEmpty {
                 KeyHint(keys: [lit ? "↵" : "↓"], label: lit ? "Open" : "Choose", theme: theme)
                     .help(lit ? "Go to the session's window" : "Highlight a running session")
             }
+            KeyHint(keys: ["⌘↵"], label: "New session", theme: theme)
+                .help(lit ? "Start a new session in that session's folder (or press \(Self.shortcutText))" : "Start a new session in your home folder (or press \(Self.shortcutText))")
         }
         .padding(.leading, 8)
     }
