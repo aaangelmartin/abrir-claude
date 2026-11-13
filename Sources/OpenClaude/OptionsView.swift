@@ -90,9 +90,12 @@ struct OptionsSection: View {
                 }
             }
             .animation(.easeOut(duration: 0.12), value: model.moment == .running)
+            // the left side gives way (truncates) rather than pushing the bar
+            .layoutPriority(0)
             Spacer(minLength: 16)
             if let usage = model.usage {
                 UsageLine(usage: usage, theme: theme)
+                    .layoutPriority(1)
                     .transition(.opacity)
             }
         }
@@ -106,19 +109,17 @@ struct OptionsSection: View {
 
     /// over the running sessions nothing is launched: what the keys do there, said plainly
     private var keys: some View {
+        // the same width whatever is lit, so nothing moves as the arrows go
         let lit = model.selected != nil
-        return HStack(spacing: 16) {
-            if model.live.isEmpty {
-                KeyHint(key: "⌘↵", label: "New session in ~", theme: theme)
-            } else if lit {
-                KeyHint(key: "↵", label: "Go to session", theme: theme)
-                KeyHint(key: "⌘↵", label: "New session in its folder", theme: theme)
-            } else {
-                KeyHint(key: "↓", label: "Pick a session", theme: theme)
-                KeyHint(key: "⌘↵", label: "New session in ~", theme: theme)
+        return HStack(spacing: 14) {
+            if !model.live.isEmpty {
+                KeyHint(key: lit ? "↵" : "↓", label: lit ? "Open" : "Choose", theme: theme)
+                    .frame(width: 80, alignment: .leading)
+                    .help(lit ? "Go to the session's window" : "Highlight a running session")
             }
+            KeyHint(key: "⌘↵", label: "New session", theme: theme)
+                .help(lit ? "Start a new session in that session's folder" : "Start a new session in your home folder")
         }
-        .fixedSize()
         .padding(.leading, 8)
     }
 
@@ -217,10 +218,10 @@ struct UsageLine: View {
             Text(theme.say(name)).foregroundStyle(theme.textMuted.opacity(0.8))
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.1))
-                Capsule().fill(colour).frame(width: max(3, 22 * min(w.percent, 100) / 100))
+                Capsule().fill(colour).frame(width: max(4, 40 * min(w.percent, 100) / 100))
             }
             .animation(.easeOut(duration: 0.4), value: w.percent)
-            .frame(width: 22, height: 4)
+            .frame(width: 40, height: 5)
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()
                 .foregroundStyle(w.percent >= 80 ? colour : theme.textSecondary)
