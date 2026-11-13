@@ -109,35 +109,6 @@ enum LaunchOptions {
         zip(all, picks).flatMap { option, pick in option.choices.indices.contains(pick) ? option.choices[pick].args : [] }
     }
 
-    // MARK: remembered picks
-
-    /// each pick is kept by its value's label, so reordering the values never changes what was picked
-    private static func key(_ option: LaunchOption) -> String { "option.\(option.id).label" }
-    private static func legacyKey(_ option: LaunchOption) -> String { "option.\(option.id)" }
-
-    static func load(_ defaults: UserDefaults = .standard) -> [Int] {
-        all.map { option in
-            if let saved = defaults.string(forKey: key(option)) {
-                let label = renamed[saved] ?? saved
-                return option.choices.firstIndex { $0.label == label } ?? 0
-            }
-            let pick = defaults.integer(forKey: legacyKey(option))
-            return option.choices.indices.contains(pick) ? pick : 0
-        }
-    }
-
-    /// labels from the spanish interface, so picks made before still load
-    private static let renamed = [
-        "Por defecto": "Default", "Aceptar ediciones": "Accept edits", "Saltar permisos": "Bypass",
-        "Nueva": "New", "Continuar": "Continue", "Elegir": "Resume", "auto": "default",
-    ]
-
-    static func save(_ picks: [Int], _ defaults: UserDefaults = .standard) {
-        for (option, pick) in zip(all, picks) where option.choices.indices.contains(pick) {
-            defaults.set(option.choices[pick].label, forKey: key(option))
-        }
-    }
-
     /// what claude itself starts with when a value adds no flag: the user's ~/.claude/settings.json
     private static let settings: (model: String?, mode: String?) = {
         let url = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".claude/settings.json")

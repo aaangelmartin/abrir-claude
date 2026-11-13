@@ -23,6 +23,8 @@ Keys:
 
 ### Model, effort, permissions and session
 
+On the right of the summary line sits the plan's use, as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Abrir Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+
 At the bottom, one line says how Claude will be launched: **Model · Effort · Permissions · Session**, each value painted the way Claude Code paints it. **↓** past the last folder (or **⌘↓**, or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
@@ -53,7 +55,7 @@ Keys in the options:
 - **esc** folds the options; a second **esc** closes the palette.
 - **↵** or **⌥C** launch Claude.
 
-There is no separate "default" value: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Picks are remembered, by name, so reordering values never changes what was picked.
+There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Every time the palette opens, the options start again from the defaults.
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. That is why opening and folding the options is smooth: the rows come in one after another.
 

@@ -105,29 +105,8 @@ import Testing
         #expect(LaunchOptions.args(for: [0, 5, 5, 0]) == ["--effort", "max", "--permission-mode", "bypassPermissions"])
     }
 
-    @Test func rememberedPicksSurviveAndOutOfRangeFallsBack() {
-        let defaults = UserDefaults(suiteName: "abrir-claude-tests-\(UUID().uuidString)")!
-        LaunchOptions.save([1, 5, 2, 2], defaults)
-        #expect(LaunchOptions.load(defaults) == [1, 5, 2, 2])
-        defaults.set("Gone", forKey: "option.model.label")
-        #expect(LaunchOptions.load(defaults)[0] == 0)
-    }
 
-    @Test func spanishLabelsStillLoad() {
-        let defaults = UserDefaults(suiteName: "abrir-claude-tests-\(UUID().uuidString)")!
-        defaults.set("Saltar permisos", forKey: "option.permissionMode.label")
-        defaults.set("Continuar", forKey: "option.session.label")
-        #expect(LaunchOptions.load(defaults)[2] == 5)
-        #expect(LaunchOptions.load(defaults)[3] == 1)
-    }
 
-    @Test func oldIndexPicksStillLoad() {
-        let defaults = UserDefaults(suiteName: "abrir-claude-tests-\(UUID().uuidString)")!
-        defaults.set(3, forKey: "option.effort")
-        defaults.set(99, forKey: "option.model")
-        #expect(LaunchOptions.load(defaults)[1] == 3)
-        #expect(LaunchOptions.load(defaults)[0] == 0)
-    }
 }
 
 @Suite struct ModelVersionsTests {
@@ -165,8 +144,31 @@ import Testing
     }
 }
 
+@Suite struct UsageTests {
+    @Test func readsSessionAndWeek() {
+        let json = #"{"five_hour":{"utilization":6.0,"resets_at":"2026-11-13T14:50:00.834874+00:00"},"seven_day":{"utilization":71.0,"resets_at":"2026-11-14T00:00:00+00:00"},"extra_usage":{"is_enabled":false}}"#
+        let u = Usage.parse(Data(json.utf8))
+        #expect(u?.session?.percent == 6)
+        #expect(u?.week?.percent == 71)
+        #expect(u?.session?.resetsAt != nil)
+        #expect(u?.week?.resetsAt != nil)
+    }
+
+    @Test func nothingWhenThereAreNoWindows() {
+        #expect(Usage.parse(Data(#"{"error":"x"}"#.utf8)) == nil)
+    }
+}
+
 @MainActor
 @Suite struct MarkedDefaultTests {
+    @Test func openingStartsFromTheDefaults() {
+        let m = PaletteModel()
+        m.pick(3, of: LaunchOptions.effort)
+        m.pick(2, of: LaunchOptions.session)
+        m.reset()
+        #expect(m.picks == [0, 0, 0, 0])
+    }
+
     @Test func pickingTheDefaultLevelAddsNoFlag() {
         let m = PaletteModel()
         m.pick(0, of: LaunchOptions.effort)

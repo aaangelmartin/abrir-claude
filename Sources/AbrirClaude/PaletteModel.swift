@@ -27,8 +27,12 @@ final class PaletteModel: ObservableObject {
     /// changes with every new set of rows, so the list view starts fresh (top, same margins)
     @Published private(set) var listID = UUID()
 
-    /// the picked value of each launch option, remembered between launches
-    @Published private(set) var picks: [Int] = LaunchOptions.load()
+    /// the picked value of each launch option. every time the palette opens they start again from
+    /// claude's defaults, so a one-off choice never carries over to the next launch
+    @Published private(set) var picks: [Int] = LaunchOptions.all.map { _ in 0 }
+    /// the plan's session and weekly use, when claude code's sign-in can be read
+    @Published var usage: Usage?
+    private var usageFetchedAt: Date?
     /// the option the arrows are on (the options are open while it is set), nil on the field and folders
     @Published private(set) var optionRow: Int?
     /// which way the last change went (-1 back, 1 forward), so a carousel slides the right way
@@ -54,6 +58,8 @@ final class PaletteModel: ObservableObject {
 
     func reset() {
         refreshModelVersions()
+        refreshUsage()
+        picks = LaunchOptions.all.map { _ in 0 }
         notice = nil
         optionRow = nil
         text = ""
@@ -124,6 +130,18 @@ final class PaletteModel: ObservableObject {
         }
     }
 
+    /// asks for the plan's use again, at most once a minute
+    func refreshUsage() {
+        // only the installed app reads the keychain (tests and previews would make macOS ask)
+        guard Bundle.main.bundleIdentifier == "com.aaangelmartin.abrir-claude" else { return }
+        if let at = usageFetchedAt, Date().timeIntervalSince(at) < 60 { return }
+        usageFetchedAt = Date()
+        Task.detached(priority: .utility) {
+            let found = await Usage.fetch()
+            await MainActor.run { self.usage = found }
+        }
+    }
+
     /// a value as shown: models with their number ("Opus 5.5"), the rest as they are
     func display(_ choice: Choice, of option: Int) -> String {
         guard option == LaunchOptions.model, let alias = choice.args.last,
@@ -174,7 +192,6 @@ final class PaletteModel: ObservableObject {
         guard LaunchOptions.all[option].choices.indices.contains(value), picks[option] != value else { return }
         lastDelta = value > shown(option) ? 1 : -1
         picks[option] = value
-        LaunchOptions.save(picks)
     }
 
     /// open the options on one of them (a click on the summary line, ⌘↓)

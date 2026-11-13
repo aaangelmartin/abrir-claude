@@ -67,6 +67,7 @@ struct OptionsSection: View {
         .clipped()
         .animation(open ? Motion.open : Motion.close, value: open)
         .animation(Motion.focus, value: model.optionRow)
+        .animation(.easeOut(duration: 0.2), value: model.usage)
     }
 
     // MARK: folded
@@ -101,11 +102,14 @@ struct OptionsSection: View {
                 .foregroundStyle(model.picks[LaunchOptions.session] == 0 ? theme.textMuted : theme.text)
             }
             Spacer(minLength: 8)
-            HStack(spacing: 6) {
-                Text("⌘↓").font(theme.label)
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+            if let usage = model.usage {
+                UsageLine(usage: usage, theme: theme)
+                    .padding(.trailing, 10)
+                    .transition(.opacity)
             }
-            .foregroundStyle(theme.textMuted.opacity(0.7))
+            Image(systemName: "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(theme.textMuted.opacity(0.7))
         }
         .font(theme.chip)
         .padding(.leading, 12)
@@ -121,6 +125,31 @@ struct OptionsSection: View {
             .frame(height: 28)
             .contentShape(Rectangle())
             .onTapGesture { model.openOptions(at: index) }
+    }
+}
+
+/// the plan's use, as claude code's /usage gives it: the five-hour session and the week, quiet until
+/// they near the limit (yellow from 80 %, red from 95 %). hover for when each resets.
+private struct UsageLine: View {
+    let usage: Usage
+    let theme: PaletteTheme
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let session = usage.session { window("5h", session) }
+            if let week = usage.week { window("Week", week) }
+        }
+        .font(theme.label)
+    }
+
+    private func window(_ name: String, _ w: Usage.Window) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(theme.say(name)).foregroundStyle(theme.textMuted.opacity(0.8))
+            Text("\(Int(w.percent.rounded()))%")
+                .monospacedDigit()
+                .foregroundStyle(w.percent >= 95 ? Color(CC.error) : w.percent >= 80 ? Color(CC.warning) : theme.textSecondary)
+        }
+        .help(w.resetsAt.map { "Resets " + $0.formatted(.relative(presentation: .named)) } ?? "")
     }
 }
 
@@ -233,7 +262,7 @@ private struct Segments: View {
         HStack(spacing: 0) {
             ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
                 let on = index == picked
-                HStack(spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
                     if let icon = icons[index] {
                         Image(systemName: icon).font(.system(size: 10.5, weight: on ? .semibold : .regular))
                             .foregroundStyle(on ? theme.text : theme.textSecondary)
@@ -364,16 +393,25 @@ private struct EffortSlider: View {
         .scaleEffect(dragX != nil ? 1.15 : hovering ? 1.06 : 1)
     }
 
-    /// a level's name: the picked one bold in its colour, the default one followed by "default"
+    /// a level's name, centred on its stop: the picked one bold in its colour. the default one has
+    /// "default" beside it, outside the name's own width so the name stays on its stop.
     private func label(_ s: Int) -> some View {
         let c = levels[s]
-        return HStack(spacing: 4) {
+        return Group {
             if s == picked {
                 PaintedText(text: c.label, paint: c.paint, font: theme.label, bold: true)
             } else {
                 Text(c.label).font(theme.label).foregroundStyle(theme.textMuted.opacity(0.7))
             }
-            if s == marked { DefaultMark(theme: theme) }
+        }
+        // a zero-wide frame on the name's edge, the word hanging out of it: the name keeps its place
+        .overlay(alignment: s == stops - 1 ? .leading : .trailing) {
+            if s == marked {
+                DefaultMark(theme: theme)
+                    .fixedSize()
+                    .frame(width: 0, alignment: s == stops - 1 ? .trailing : .leading)
+                    .offset(x: s == stops - 1 ? -4 : 4, y: 0.5)
+            }
         }
     }
 
@@ -429,7 +467,7 @@ private struct ModePicker: View {
     }
 
     private func segment(_ c: Choice, on: Bool, isDefault: Bool) -> some View {
-        HStack(spacing: 4) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(theme.say(c.label))
                 .font(theme.chip)
                 .fontWeight(on ? .semibold : .regular)
