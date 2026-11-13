@@ -5,7 +5,7 @@ import SwiftUI
 
 /// how the window looks. claude's quick entry by default; the laaabs. look stays to compare:
 ///
-///     defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
+///     defaults write com.aaangelmartin.claude-launcher theme laaabs   # or claude
 ///
 /// then reopen the app (⌘Q in the window, open it again).
 @MainActor

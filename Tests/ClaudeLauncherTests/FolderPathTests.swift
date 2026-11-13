@@ -1,4 +1,4 @@
-@testable import OpenClaude
+@testable import ClaudeLauncher
 import Foundation
 import Testing
 
@@ -38,7 +38,7 @@ import Testing
 
 @Suite struct SuggestionsTests {
     let root: String = {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("open-claude-tests-\(UUID().uuidString)")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("claude-launcher-tests-\(UUID().uuidString)")
         for sub in ["proyectos/alfa", "proyectos/Beta", "proyectos/.oculta", "Documentos"] {
             try! FileManager.default.createDirectory(at: dir.appendingPathComponent(sub), withIntermediateDirectories: true)
         }

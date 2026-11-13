@@ -294,7 +294,7 @@ final class MainModel: ObservableObject {
     /// asks for the plan's use again, at most once a minute
     func refreshUsage() {
         // only the installed app reads the keychain (tests and previews would make macOS ask)
-        guard Bundle.main.bundleIdentifier == "com.aaangelmartin.open-claude" else { return }
+        guard Bundle.main.bundleIdentifier == "com.aaangelmartin.claude-launcher" else { return }
         if let at = usageFetchedAt, Date().timeIntervalSince(at) < 60 { return }
         usageFetchedAt = Date()
         Task.detached(priority: .utility) {

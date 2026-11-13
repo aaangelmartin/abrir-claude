@@ -4,7 +4,7 @@ import Foundation
 import Security
 import ServiceManagement
 
-/// what open claude needs, checked without asking for anything: claude code installed, permission to
+/// what claude launcher needs, checked without asking for anything: claude code installed, permission to
 /// control terminal, claude code signed in (for the plan's use), start at login, the claude app (for
 /// its font).
 enum Setup {

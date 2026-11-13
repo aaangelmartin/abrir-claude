@@ -194,7 +194,7 @@ private struct WelcomeStep: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 14) {
                 ClaudeMark(color: theme.mark).frame(width: 34, height: 34)
-                StepTitle(title: "Open Claude", line: "Your Claude Code sessions, one shortcut away.", theme: theme)
+                StepTitle(title: "Claude Launcher", line: "Your Claude Code sessions, one shortcut away.", theme: theme)
             }
             VStack(alignment: .leading, spacing: 16) {
                 feature("circle.dashed", "Running sessions", "Every session at a glance, and what it needs from you. ↵ takes you to its window.")
@@ -230,7 +230,7 @@ private struct ChecksStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
-                StepTitle(title: "Check your setup", line: "What Open Claude needs, and what it is better with.", theme: theme)
+                StepTitle(title: "Check your setup", line: "What Claude Launcher needs, and what it is better with.", theme: theme)
                 Spacer()
                 Button(theme.say("Check again")) { refresh() }
                     .buttonStyle(QuietButtonStyle(theme: theme))
@@ -295,7 +295,7 @@ private struct ShortcutStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
-            StepTitle(title: "Your shortcut", line: "Press it anywhere to bring up Open Claude. Press it again to start a session at once.", theme: theme)
+            StepTitle(title: "Your shortcut", line: "Press it anywhere to bring up Claude Launcher. Press it again to start a session at once.", theme: theme)
             HStack {
                 Spacer()
                 KeyboardShortcuts.Recorder(for: .openClaude)

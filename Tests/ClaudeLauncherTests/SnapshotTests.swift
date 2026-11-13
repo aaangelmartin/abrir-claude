@@ -1,4 +1,4 @@
-@testable import OpenClaude
+@testable import ClaudeLauncher
 import AppKit
 import SwiftUI
 import Testing
@@ -60,7 +60,7 @@ import Testing
         let home = FolderPath.home
         let s = (0..<4).map { SessionInfo(id: "s\($0)", title: ["Add plan usage to the palette", "Fuzzy project search like T3 Code", "Fix the effort slider", "Translate everything to English"][$0], updated: Date().addingTimeInterval(-Double($0 + 1) * 5000)) }
         return [
-            home + "/Developer/open-claude": ProjectInfo(path: home + "/Developer/open-claude", lastUsed: Date().addingTimeInterval(-600), sessions: s, branch: "feat/open-claude"),
+            home + "/Developer/claude-launcher": ProjectInfo(path: home + "/Developer/claude-launcher", lastUsed: Date().addingTimeInterval(-600), sessions: s, branch: "main"),
             home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date().addingTimeInterval(-86_400 * 2)),
         ]
     }
@@ -69,7 +69,7 @@ import Testing
         let now = Date()
         m.live = [
             LiveSession(pid: 1, sessionId: "a", cwd: FolderPath.home + "/Desktop/laaabs", name: "Brain & Ranking", state: .waiting, waitingFor: "permission", since: now.addingTimeInterval(-40)),
-            LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/open-claude", name: "open-claude-a1", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-300)),
+            LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/claude-launcher", name: "claude-launcher-a1", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-300)),
             LiveSession(pid: 3, sessionId: "c", cwd: FolderPath.home + "/Developer/Priv8", name: "priv8-f3", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-90)),
             LiveSession(pid: 4, sessionId: "d", cwd: FolderPath.home, name: "aaangel-62", state: .idle, waitingFor: nil, since: now.addingTimeInterval(-7200)),
         ]
@@ -78,10 +78,10 @@ import Testing
     @Test func runningUnlit() { shot("14-running-unlit") { m in
         m.reset(); m.projects = Self.sample()
         m.live = [LiveSession(pid: 1, sessionId: "a", cwd: FolderPath.home + "/Desktop/laaabs", name: "Brain & Ranking", state: .waiting, waitingFor: nil, since: Date()),
-                  LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/open-claude", name: "open-claude-a1", state: .busy, waitingFor: nil, since: Date())]
+                  LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/claude-launcher", name: "claude-launcher-a1", state: .busy, waitingFor: nil, since: Date())]
         m.refreshRows(); m.usage = Usage(session: .init(percent: 17, resetsAt: Date().addingTimeInterval(3960)), week: .init(percent: 72, resetsAt: Date().addingTimeInterval(36960)))
     } }
-    @Test func recents() { shot("12-step") { m in m.reset(); m.projects = Self.sample(); m.text = "Developer/open-claude"; _ = m.handle(.enter) } }
+    @Test func recents() { shot("12-step") { m in m.reset(); m.projects = Self.sample(); m.text = "Developer/claude-launcher"; _ = m.handle(.enter) } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
     @Test func newMode() { shot("11-new") { m in m.reset(); m.projects = Self.sample(); m.text = "Developer"; _ = m.handle(.enter) } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); for i in 0..<3 { m.pick(0, of: i) } } }

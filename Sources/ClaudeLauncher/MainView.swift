@@ -151,7 +151,7 @@ struct MainView: View {
                 .frame(width: Self.barHeight)
             Group {
                 switch notice {
-                case .notAllowed: Text(theme.say("Open Claude needs permission to control Terminal."))
+                case .notAllowed: Text(theme.say("Claude Launcher needs permission to control Terminal."))
                 case let .failed(message): Text(theme.say("Terminal did not respond: ") + message)
                 case let .windowNotFound(name): Text(theme.say("Could not find the window of \(name)."))
                 }

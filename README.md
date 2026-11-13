@@ -1,6 +1,6 @@
-# open claude
+# claude launcher
 
-A global shortcut (⌥C) brings up Open Claude, a quick window for Claude Code on your Mac. Each moment has one purpose:
+A global shortcut (⌥C) brings up Claude Launcher, a quick window for Claude Code on your Mac. Each moment has one purpose:
 
 1. **Opened**: every Claude Code session running now, with its state. **↵** goes to it.
 2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
@@ -12,7 +12,7 @@ While searching and in a folder, where a session starts or resumes, model, effor
 
 ## Running sessions
 
-Read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while Open Claude is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
+Read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while Claude Launcher is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
 
 ## Folders
 
@@ -31,11 +31,11 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 - **↑ ↓** move through the list, and **↑** at the top stays there. Running sessions start with nothing highlighted; a search lights its best match (not when a path ending in `/` lists that folder's subfolders: then **↵** opens the folder itself); a folder lights New session.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
-- **⌘W** or a click outside close Open Claude; **⌘Q** quits the app (it starts again at login or from Applications).
+- **⌘W** or a click outside close Claude Launcher; **⌘Q** quits the app (it starts again at login or from Applications).
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right: the five-hour session (**5h**) and the **Week**, each as a small meter with its percentage and the time left until it resets (in hours and minutes for the session, hours or days for the week). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right: the five-hour session (**5h**) and the **Week**, each as a small meter with its percentage and the time left until it resets (in hours and minutes for the session, hours or days for the week). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Claude Launcher read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
 The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
@@ -66,13 +66,13 @@ Keys in the options:
 - **esc** or **⌥↑** fold the options.
 - **↵** or **⌥C** launch Claude.
 
-There is no separate "default" value, and every time Open Claude opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
+There is no separate "default" value, and every time Claude Launcher opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the window fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
 
 The shortcut is ⌥C unless another is picked in the setup; while the app runs, that key no longer types its character (⌥C types "©").
 
-Opening the app from Spotlight or Finder also brings up Open Claude. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
+Opening the app from Spotlight or Finder also brings up Claude Launcher. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
 
 ## Look
 
@@ -92,18 +92,18 @@ Anthropic Sans (the interface) and Anthropic Serif (the setup's headings, as Cla
 The **laaabs.** style uses the same bar in black, with Outfit and a cyan caret. To switch:
 
 ```sh
-defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
-pkill -x OpenClaude; open ~/Applications/"Open Claude.app"
+defaults write com.aaangelmartin.claude-launcher theme laaabs   # or claude
+pkill -x ClaudeLauncher; open ~/Applications/"Claude Launcher.app"
 ```
 
 ## Setup
 
-The first launch opens a short setup, in Open Claude's own look, and **⌘,** brings it back:
+The first launch opens a short setup, in Claude Launcher's own look, and **⌘,** brings it back:
 
-1. **Welcome**: what Open Claude does.
+1. **Welcome**: what Claude Launcher does.
 2. **Check your setup**: Claude Code installed (and its version), permission to control Terminal (with a button to ask for it), Claude Code signed in (needed for the plan's use; only its presence is checked), the Claude app (for its font), and start at login, which can be switched here.
 3. **Your shortcut**: a recorder to pick it; ⌥C by default.
-4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there brings up Open Claude.
+4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there brings up Claude Launcher.
 
 The aaangelmartin wordmark sits in the middle of its footer.
 
@@ -115,13 +115,13 @@ Requirements:
 - `claude` on a login shell's PATH (`zsh -lic 'command -v claude'`)
 
 ```sh
-cd ~/Developer/open-claude
+cd ~/Developer/claude-launcher
 ./scripts/install.sh
 ```
 
 The script:
 1. Builds for arm64 and x86_64.
-2. Assembles `build/Open Claude.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
+2. Assembles `build/Claude Launcher.app` and makes the icon from `Resources/claude.svg` (white mark on Claude's orange).
 3. Signs with the first valid "Developer ID Application" certificate in the keychain. `SIGN_IDENTITY=-` signs ad hoc.
 4. Installs it in `~/Applications` and opens it.
 
@@ -129,7 +129,7 @@ On first launch it adds itself to the login items and opens the setup.
 
 ## macOS permissions
 
-- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, Open Claude says so and offers a button to System Settings → Privacy & Security → Automation.
+- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, Claude Launcher says so and offers a button to System Settings → Privacy & Security → Automation.
 - **Login item**: macOS posts a notification that it was added. Manage it in System Settings → General → Login Items.
 
 The global shortcut needs no Accessibility permission, since it uses `KeyboardShortcuts` (Carbon hotkeys).
@@ -137,7 +137,7 @@ The global shortcut needs no Accessibility permission, since it uses `KeyboardSh
 ## Layout
 
 ```
-Sources/OpenClaude/
+Sources/ClaudeLauncher/
   App.swift            launch, global shortcut, login item
   Panel.swift          floating panel that never activates the app, keys, position
   MainView.swift       the window's content in SwiftUI
@@ -163,8 +163,8 @@ Tests/                 paths, suggestions, selection, options and model versions
 ## Uninstall
 
 ```sh
-pkill -x OpenClaude
-rm -rf ~/Applications/"Open Claude.app"
+pkill -x ClaudeLauncher
+rm -rf ~/Applications/"Claude Launcher.app"
 ```
 
 Then remove it from System Settings → General → Login Items if it is still listed.

@@ -1,7 +1,7 @@
 import Foundation
 
 /// opens a new terminal window and runs a command in it, through apple events. the first time macOS
-/// asks whether open claude may control terminal.
+/// asks whether claude launcher may control terminal.
 enum Terminal {
     enum Failure: Error {
         /// the user said no to controlling terminal, or has not been asked yet in a way that stuck
