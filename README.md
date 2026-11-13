@@ -1,6 +1,6 @@
 # open claude
 
-A global shortcut (⌥C) opens a palette that asks which folder to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
+A global shortcut (⌥C) opens a palette with the Claude Code sessions running now, and finds any folder or past session to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
 
 ## Usage
 
@@ -14,7 +14,7 @@ A global shortcut (⌥C) opens a palette that asks which folder to open Claude C
 
 ### Active sessions
 
-With nothing typed, the palette first lists the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows what it is doing in Claude Code's own words and colours, as its agent view (`claude agents`) shows them: **Working** with Claude's spinner (`· ✢ ✳ ✶ ✻ ✽` in its orange), **Needs input** in its warning yellow, or **Idle** dimmed; with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
+With nothing typed, the palette lists only the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over); with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
 
 - **↵** goes to the session: its Terminal tab is brought forward, or the app it runs in when it is not in Terminal.
 - **⌘↵** opens a new session in that session's folder.
@@ -23,11 +23,15 @@ Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud
 
 ### Projects
 
-With nothing typed, the palette lists the folders used last, here or in Claude Code itself (from its sessions in `~/.claude/projects`), newest first. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
+Folders and past sessions appear as you type. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
 
 Each known project shows on the right, in columns that line up, its git branch, when it was last used ("10m ago") and how many Claude sessions it has ("4 sessions ›"). Claude Code's sessions in `~/.claude/projects` are what make a folder known and give it its last use.
 
-### Sessions
+### Past sessions
+
+While a name is typed, past sessions whose title has every word typed are listed under **Sessions**, newest first; **↵** resumes one in its own folder (`claude --resume <id>`), **⌘↵** opens a new session in that folder.
+
+### Open step
 
 **↵** on a folder (or **→** with the caret at the end of the text, or a click on its session count) moves to the open step, in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
 

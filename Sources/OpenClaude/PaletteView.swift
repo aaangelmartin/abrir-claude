@@ -31,13 +31,24 @@ struct PaletteView: View {
                 SessionList(model: model, theme: theme)
             } else {
                 let active = model.shownLive
+                let matches = model.sessionMatches
+                if !active.isEmpty || !matches.isEmpty || !model.rows.isEmpty { divider }
                 if !active.isEmpty {
-                    divider
                     ActiveList(model: model, sessions: active, theme: theme)
                 }
+                if !matches.isEmpty {
+                    MatchList(model: model, matches: matches, theme: theme)
+                }
                 if !model.rows.isEmpty {
-                    if active.isEmpty { divider }
                     rowsView
+                }
+                if active.isEmpty, model.text.trimmingCharacters(in: .whitespaces).isEmpty {
+                    divider
+                    Text(theme.say("No Claude sessions running. Type to find a folder or a past session."))
+                        .font(theme.label)
+                        .foregroundStyle(theme.textMuted)
+                        .padding(.leading, Self.barHeight)
+                        .frame(height: 40)
                 }
             }
 
@@ -76,7 +87,7 @@ struct PaletteView: View {
                 .frame(width: Self.barHeight, height: Self.barHeight)
             TextField(
                 "", text: $model.text,
-                prompt: Text(theme.say("Which folder should Claude open in?")).foregroundStyle(theme.placeholder)
+                prompt: Text(theme.say("Search folders and sessions")).foregroundStyle(theme.placeholder)
             )
             .textFieldStyle(.plain)
             .font(theme.input)
@@ -99,18 +110,7 @@ struct PaletteView: View {
 
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if model.showingRecents || !model.shownLive.isEmpty {
-                // lined up with the folder names, close to the rows it names
-                HStack(spacing: 10) {
-                    Text(theme.say(model.showingRecents ? "Recent" : "Folders"))
-                    Text(theme.say("↵ open")).foregroundStyle(theme.textMuted.opacity(0.55))
-                }
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(theme.textMuted.opacity(0.85))
-                    .padding(.leading, Self.barHeight)
-                    .frame(height: 26, alignment: .bottom)
-                    .padding(.bottom, -2)
-            }
+            SectionLabel(title: "Folders", hint: "↵ open", theme: theme)
             FolderList(model: model, theme: theme)
                 // a new list (typing, tab) is a new scroll view: it always starts at the top, same margins
                 .id(model.listID)
@@ -506,20 +506,8 @@ private struct ActiveList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Text(theme.say("Active"))
-                Text(theme.say("↵ go to it")).foregroundStyle(theme.textMuted.opacity(0.55))
-                Spacer()
-                if model.live.count > sessions.count, model.text.isEmpty {
-                    Text(theme.say("\(model.live.count - sessions.count) more, type to find them"))
-                }
-            }
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(theme.textMuted.opacity(0.85))
-            .padding(.leading, PaletteView.barHeight)
-            .padding(.trailing, 20)
-            .frame(height: 26, alignment: .bottom)
-            .padding(.bottom, 2)
+            SectionLabel(title: "Active", hint: "↵ go to it", theme: theme,
+                         trailing: model.live.count > sessions.count && model.text.isEmpty ? "\(model.live.count - sessions.count) more, type to find them" : nil)
             VStack(spacing: 0) {
                 ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
                     row(i, s)
@@ -568,49 +556,119 @@ private struct ActiveList: View {
         .help("↵ go to it   ⌘↵ new session in \(folder.isEmpty ? "~" : folder)")
     }
 
-    /// claude code's own words for a session in its agent view
+    /// the words claude's code view uses to filter sessions (needs input, working, completed)
     static func label(_ s: LiveSession) -> String {
         switch s.state {
-        case .busy, .shell: "Working"
+        case .busy: "Working"
         case .waiting: "Needs input"
-        case .idle: "Idle"
+        case .idle: "Completed"
         }
     }
 
-    /// and its colours: working in the text colour, needs input in its warning yellow, idle dimmed
+    /// needs input in claude code's warning yellow, working in the text colour, completed dimmed
     static func colour(_ state: LiveSession.State, _ theme: PaletteTheme) -> Color {
         switch state {
-        case .busy, .shell: theme.textRow
+        case .busy: theme.textRow
         case .waiting: Color(CC.warning)
         case .idle: theme.textMuted.opacity(0.75)
         }
     }
 }
 
-/// a session's state as claude code draws it: working is its spinner (· ✢ ✳ ✶ ✻ ✽ and back, in
-/// claude's orange), needs input a yellow dot, idle a dim one
+/// a session's state with the icons of claude's code view: a raised hand for needs input, a turning
+/// arc for working, a ticked circle for completed
 private struct StateDot: View {
     let state: LiveSession.State
-    private static let frames = ["·", "✢", "✳", "✶", "✻", "✽"]
-    private static let cycle = frames + frames.reversed()
 
     var body: some View {
         Group {
             switch state {
-            case .busy, .shell:
-                TimelineView(.periodic(from: .now, by: 0.12)) { context in
-                    let i = Int(context.date.timeIntervalSinceReferenceDate / 0.12) % Self.cycle.count
-                    Text(Self.cycle[i])
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(hex: 0xD77757))
+            case .busy:
+                TimelineView(.animation) { context in
+                    let turn = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 0.9) / 0.9
+                    Circle()
+                        .trim(from: 0, to: 0.72)
+                        .stroke(Color(hex: 0xD77757), style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                        .frame(width: 12, height: 12)
+                        .rotationEffect(.degrees(turn * 360))
                 }
             case .waiting:
-                Text("●").font(.system(size: 9)).foregroundStyle(Color(CC.warning))
+                Image(systemName: "hand.raised").font(.system(size: 12.5)).foregroundStyle(Color(CC.warning))
             case .idle:
-                Text("●").font(.system(size: 9)).foregroundStyle(Color.white.opacity(0.25))
+                Image(systemName: "checkmark.circle").font(.system(size: 12.5)).foregroundStyle(Color.white.opacity(0.35))
             }
         }
         .frame(width: 18, height: 18)
+    }
+}
+
+/// past sessions found by their title while typing: enter resumes one in its own folder
+private struct MatchList: View {
+    @ObservedObject var model: PaletteModel
+    let matches: [(folder: String, session: SessionInfo)]
+    let theme: PaletteTheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel(title: "Sessions", hint: "↵ resume", theme: theme)
+            ForEach(Array(matches.enumerated()), id: \.element.session.id) { i, m in
+                let on = i == model.matchSelected
+                HStack(spacing: 0) {
+                    Image(systemName: "text.bubble")
+                        .font(.system(size: 12))
+                        .foregroundStyle(on ? theme.text : theme.icon)
+                        .frame(width: PaletteView.barHeight - 16)
+                        .padding(.trailing, 8)
+                    Text(m.session.title)
+                        .font(theme.row)
+                        .foregroundStyle(on ? theme.text : theme.textRow)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    Text(m.folder.isEmpty ? "~" : m.folder)
+                        .font(theme.label)
+                        .foregroundStyle(theme.textMuted.opacity(0.8))
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .padding(.leading, 10)
+                    Spacer(minLength: 12)
+                    Text(Ago.long(m.session.updated))
+                        .font(theme.label)
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textMuted.opacity(0.8))
+                }
+                .padding(.trailing, 12)
+                .frame(height: PaletteView.rowHeight)
+                .background(on ? theme.rowSelected : .clear, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 8)
+                .contentShape(Rectangle())
+                .onHover { if $0 { model.pointMatch(at: i) } }
+                .onTapGesture { model.resumeMatch(i) }
+            }
+            .padding(.bottom, 4)
+        }
+    }
+}
+
+/// a section's name over its rows, lined up with their names, and what enter does there
+struct SectionLabel: View {
+    let title: String
+    let hint: String
+    let theme: PaletteTheme
+    var trailing: String?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(theme.say(title))
+            Text(theme.say(hint)).foregroundStyle(theme.textMuted.opacity(0.55))
+            Spacer()
+            if let trailing { Text(theme.say(trailing)) }
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(theme.textMuted.opacity(0.85))
+        .padding(.leading, PaletteView.barHeight)
+        .padding(.trailing, 20)
+        .frame(height: 26, alignment: .bottom)
+        .padding(.bottom, 2)
     }
 }
 

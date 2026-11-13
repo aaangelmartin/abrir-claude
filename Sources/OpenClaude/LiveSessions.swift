@@ -9,9 +9,7 @@ struct LiveSession: Equatable, Sendable, Identifiable {
         case busy
         /// stopped on something only you can give: a permission, an answer
         case waiting
-        /// running a shell command
-        case shell
-        /// done, waiting for your next message
+        /// its turn is over: waiting for your next message (claude's "shell" too: not working)
         case idle
     }
 
@@ -30,8 +28,7 @@ struct LiveSession: Equatable, Sendable, Identifiable {
         switch state {
         case .waiting: 0
         case .busy: 1
-        case .shell: 2
-        case .idle: 3
+        case .idle: 2
         }
     }
 }
@@ -62,7 +59,7 @@ enum LiveSessions {
         let name = (json["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? URL(fileURLWithPath: cwd).lastPathComponent
         return LiveSession(
             pid: pid, sessionId: sessionId, cwd: cwd, name: name,
-            state: (json["status"] as? String).flatMap(LiveSession.State.init) ?? .idle,
+            state: (json["status"] as? String).flatMap(LiveSession.State.init) ?? .idle, // "shell" and unknown: not working
             waitingFor: json["waitingFor"] as? String,
             since: Date(timeIntervalSince1970: millis / 1000)
         )

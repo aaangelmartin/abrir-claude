@@ -108,6 +108,7 @@ final class PaletteModel: ObservableObject {
     func pointLive(at index: Int) {
         guard shownLive.indices.contains(index), liveSelected != index else { return }
         selected = nil
+        matchSelected = nil
         liveSelected = index
     }
 
@@ -140,11 +141,13 @@ final class PaletteModel: ObservableObject {
 
     func refreshRows() {
         liveSelected = nil
+        matchSelected = nil
         listID = UUID()
         let typed = text.trimmingCharacters(in: .whitespaces)
         if typed.isEmpty {
-            rows = recentRows()
-            showingRecents = !rows.isEmpty
+            // nothing typed: only the sessions running now; folders and past sessions come by typing
+            rows = []
+            showingRecents = false
         } else if typed.contains("/") || typed.hasPrefix("~") {
             // a path being typed: its subfolders, as a shell completes them
             rows = Suggestions.completions(for: text)
@@ -261,6 +264,7 @@ final class PaletteModel: ObservableObject {
     func point(at index: Int) {
         guard rows.indices.contains(index), selected != index else { return }
         liveSelected = nil
+        matchSelected = nil
         selectedByPointer = true
         selected = index
     }
@@ -367,59 +371,104 @@ final class PaletteModel: ObservableObject {
         return handleField(key)
     }
 
-    /// the arrows on an active session: up and down through them and on into the folders, enter goes
-    /// to it, ⌘↵ opens a new session in its folder
-    private func handleLive(_ key: Key, _ index: Int) -> Bool {
-        let count = shownLive.count
-        switch key {
-        case .down:
-            if index < count - 1 { liveSelected = index + 1 } else if !rows.isEmpty { liveSelected = nil; selectedByPointer = false; selected = 0 }
-        case .up: liveSelected = index == 0 ? nil : index - 1
-        case .jumpUp: liveSelected = nil
-        case .jumpDown: if !rows.isEmpty { liveSelected = nil; selected = rows.count - 1 } else { liveSelected = count - 1 }
-        case .enter: focusLive(index)
-        case .openNew:
-            let s = shownLive[index]
-            onOpen(FolderPath.display(s.cwd), LaunchOptions.args(for: picks))
-        case .escape: close()
-        case .left, .right, .space: return false
-        case .tab, .optionsDown, .optionsUp: break
-        }
-        return true
+    // MARK: the three lists, in order: active sessions, past sessions found, folders
+
+    /// past sessions whose title has every word typed, newest first, while a name is typed
+    var sessionMatches: [(folder: String, session: SessionInfo)] {
+        let typed = text.trimmingCharacters(in: .whitespaces).lowercased()
+        guard typed.count >= 2, !typed.contains("/"), !typed.hasPrefix("~") else { return [] }
+        let words = typed.split(separator: " ").map(String.init)
+        return projects.values
+            .flatMap { p in p.sessions.map { (FolderPath.display(p.path), $0) } }
+            .filter { pair in let t = pair.1.title.lowercased(); return words.allSatisfy { t.contains($0) } }
+            .sorted { $0.1.updated > $1.1.updated }
+            .prefix(5)
+            .map { (folder: $0.0, session: $0.1) }
+    }
+
+    /// the lit past session found by its title
+    @Published var matchSelected: Int?
+
+    /// where the arrows are across the three lists, from 0, or nil on the field
+    private var position: Int? {
+        if let liveSelected { return liveSelected }
+        if let matchSelected { return shownLive.count + matchSelected }
+        if let selected { return shownLive.count + sessionMatches.count + selected }
+        return nil
+    }
+
+    private func move(to p: Int?) {
+        let live = shownLive.count, matches = sessionMatches.count
+        liveSelected = nil
+        matchSelected = nil
+        selected = nil
+        selectedByPointer = false
+        guard let p else { return }
+        if p < live { liveSelected = p } else if p < live + matches { matchSelected = p - live } else { selected = p - live - matches }
+    }
+
+    func pointMatch(at index: Int) {
+        guard matchSelected != index else { return }
+        liveSelected = nil
+        selected = nil
+        matchSelected = index
+    }
+
+    /// resume a past session found by its title, in its folder
+    func resumeMatch(_ index: Int) {
+        let list = sessionMatches
+        guard list.indices.contains(index) else { return }
+        onOpen(list[index].folder, LaunchOptions.args(for: picks) + ["--resume", list[index].session.id])
     }
 
     private func handleField(_ key: Key) -> Bool {
-        if let liveSelected, shownLive.indices.contains(liveSelected) { return handleLive(key, liveSelected) }
+        let total = shownLive.count + sessionMatches.count + rows.count
         switch key {
         case .down:
-            // the active sessions come first, then the folders; the last row is the end
-            if selected == nil, !shownLive.isEmpty { liveSelected = 0; return true }
-            guard !rows.isEmpty else { return true }
-            selectedByPointer = false
-            if let selected { self.selected = min(selected + 1, rows.count - 1) } else { selected = 0 }
+            // through the lists in order; the last row is the end
+            guard total > 0 else { return true }
+            move(to: min((position ?? -1) + 1, total - 1))
+            return true
         case .up:
             // at the top already: stay there, never wrap round to the bottom
-            guard !rows.isEmpty, let selected else { return true }
-            selectedByPointer = false
-            if selected == 0, !shownLive.isEmpty {
-                self.selected = nil
-                liveSelected = shownLive.count - 1
-            } else {
-                self.selected = selected == 0 ? nil : selected - 1
+            guard let p = position else { return true }
+            move(to: p == 0 ? nil : p - 1)
+            return true
+        case .jumpDown: if total > 0 { move(to: total - 1) }; return true
+        case .jumpUp: move(to: nil); return true
+        case .escape: close(); return true
+        case .optionsDown, .optionsUp: return true
+        default: break
+        }
+        if let i = liveSelected {
+            switch key {
+            case .enter: focusLive(i)
+            case .openNew: onOpen(FolderPath.display(shownLive[i].cwd), LaunchOptions.args(for: picks))
+            case .left, .right, .space: return false
+            default: break
             }
-        case .jumpDown: if !rows.isEmpty { selectedByPointer = false; selected = rows.count - 1 }
-        case .jumpUp: selected = nil
+            return true
+        }
+        if let i = matchSelected {
+            switch key {
+            case .enter: resumeMatch(i)
+            case .openNew: onOpen(sessionMatches[i].folder, LaunchOptions.args(for: picks))
+            case .left, .right, .space: return false
+            default: break
+            }
+            return true
+        }
+        switch key {
         case .openNew: openNew()
-        case .optionsDown, .optionsUp: break
         case .tab: complete()
         case .enter: submit()
-        case .escape: close()
         case .right:
             // → at the end of the text opens the lit folder's sessions; elsewhere it moves the caret
             guard caretAtEnd(), let selected, rows.indices.contains(selected),
                   info(for: rows[selected])?.sessions.isEmpty == false else { return false }
             openSessions(of: rows[selected])
         case .left, .space: return false // the caret and spaces belong to the field
+        default: break
         }
         return true
     }

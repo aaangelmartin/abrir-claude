@@ -289,4 +289,26 @@ import Testing
         _ = m.handle(.up)
         #expect(m.liveSelected == nil)
     }
+
+    @Test func nothingTypedShowsNoFolders() {
+        let m = PaletteModel()
+        m.reset()
+        #expect(m.rows.isEmpty)
+    }
+
+    @Test func typingFindsPastSessionsByTitleAndEnterResumes() {
+        let m = PaletteModel()
+        let home = FolderPath.home
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "s1", title: "Fix the effort slider", updated: Date())])]
+        m.live = []
+        var got: (String, [String])?
+        m.onOpen = { got = ($0, $1) }
+        m.text = "effort slider"
+        #expect(m.sessionMatches.count == 1)
+        _ = m.handle(.down)
+        #expect(m.matchSelected == 0)
+        _ = m.handle(.enter)
+        #expect(got?.0 == "Developer")
+        #expect(got?.1 == ["--resume", "s1"])
+    }
 }

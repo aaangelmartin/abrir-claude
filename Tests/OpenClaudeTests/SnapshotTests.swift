@@ -27,7 +27,7 @@ import Testing
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name + ".png"))
     }
 
-    @Test func empty() { shot("1-empty") { $0.reset() } }
+    @Test func empty() { shot("1-empty") { m in m.reset(); m.live = [] } }
     @Test func typing() { shot("2-typing") { $0.text = "Dev" } }
     @Test func optionsFolded() { shot("3-folded") { m in m.reset(); m.submit(); m.usage = Usage(session: .init(percent: 6, resetsAt: nil), week: .init(percent: 84, resetsAt: nil)); m.pick(2, of: 0); m.pick(4, of: 1); m.pick(3, of: 2) } }
     @Test func optionsOpen() { shot("4-open") { m in m.reset(); m.pick(2, of: 0); m.pick(3, of: 1); m.pick(5, of: 2); m.submit(); _ = m.handle(.optionsDown); _ = m.handle(.down) } }
@@ -49,12 +49,12 @@ import Testing
         m.live = [
             LiveSession(pid: 1, sessionId: "a", cwd: FolderPath.home + "/Desktop/laaabs", name: "Brain & Ranking", state: .waiting, waitingFor: "permission", since: now.addingTimeInterval(-40)),
             LiveSession(pid: 2, sessionId: "b", cwd: FolderPath.home + "/Developer/open-claude", name: "open-claude-a1", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-300)),
-            LiveSession(pid: 3, sessionId: "c", cwd: FolderPath.home + "/Developer/Priv8", name: "priv8-f3", state: .shell, waitingFor: nil, since: now.addingTimeInterval(-90)),
+            LiveSession(pid: 3, sessionId: "c", cwd: FolderPath.home + "/Developer/Priv8", name: "priv8-f3", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-90)),
             LiveSession(pid: 4, sessionId: "d", cwd: FolderPath.home, name: "aaangel-62", state: .idle, waitingFor: nil, since: now.addingTimeInterval(-7200)),
         ]
         m.refreshRows(); m.liveSelected = 1
     } }
-    @Test func recents() { shot("12-recents") { m in m.reset(); m.projects = Self.sample(); m.refreshRows() } }
+    @Test func recents() { shot("12-search") { m in m.reset(); m.projects = Self.sample(); m.live = []; m.text = "effort" } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
     @Test func sessions() { shot("11-sessions") { m in m.reset(); m.projects = Self.sample(); m.text = "abr"; m.openSessions(of: m.rows[0]); m.sessionSelected = 2 } }
     @Test func optionsDefault() { shot("6-default") { m in m.reset(); m.submit(); for i in 0..<3 { m.pick(0, of: i) } } }
