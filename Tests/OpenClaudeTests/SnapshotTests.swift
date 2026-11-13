@@ -27,6 +27,27 @@ import Testing
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name + ".png"))
     }
 
+    private func onboarding(_ name: String, _ step: OnboardingView.Step) {
+        guard let dir else { return }
+        let view = NSHostingView(rootView: OnboardingView(step: step).environment(\.colorScheme, .dark))
+        view.appearance = NSAppearance(named: .darkAqua)
+        let size = view.fittingSize
+        view.frame = NSRect(origin: .zero, size: size)
+        let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: size.width, height: size.height), styleMask: .borderless, backing: .buffered, defer: false)
+        window.contentView = view
+        view.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name + ".png"))
+    }
+    @Test func onboardingSteps() {
+        onboarding("20-welcome", .welcome)
+        onboarding("21-checks", .checks)
+        onboarding("22-shortcut", .shortcut)
+        onboarding("23-done", .done)
+    }
+
     @Test func empty() { shot("1-empty") { m in m.reset(); m.live = []; m.usage = Usage(session: .init(percent: 6, resetsAt: Date().addingTimeInterval(8040)), week: .init(percent: 84, resetsAt: Date().addingTimeInterval(36960))) } }
     @Test func typing() { shot("2-typing") { m in m.projects = Self.sample(); m.text = "Dev" } }
     @Test func optionsFolded() { shot("3-folded") { m in m.reset(); m.text = "Developer"; _ = m.handle(.enter); m.usage = Usage(session: .init(percent: 6, resetsAt: Date().addingTimeInterval(8040)), week: .init(percent: 84, resetsAt: Date().addingTimeInterval(36960))); m.pick(2, of: 0); m.pick(4, of: 1); m.pick(3, of: 2) } }

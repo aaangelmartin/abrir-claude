@@ -77,6 +77,8 @@ final class PaletteController: NSObject, NSWindowDelegate {
     }
 
     var isVisible: Bool { panel.isVisible }
+    /// ⌘, in the palette: the setup again
+    var onSetup: () -> Void = {}
 
     /// the hotkey: the first press opens the palette, a second press while it is open acts as enter,
     /// so pressing it twice opens claude in the home folder straight away
@@ -160,6 +162,11 @@ final class PaletteController: NSObject, NSWindowDelegate {
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if mods.contains(.command), event.charactersIgnoringModifiers == "q" {
             NSApp.terminate(nil)
+            return true
+        }
+        if mods.contains(.command), event.charactersIgnoringModifiers == "," {
+            hide()
+            onSetup()
             return true
         }
         if mods.contains(.command), event.charactersIgnoringModifiers == "w" {

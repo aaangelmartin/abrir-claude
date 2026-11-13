@@ -6,7 +6,7 @@ A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each momen
 2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
 3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes.
 
-While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so the same bar says what the keys do there, following what is highlighted (**↓** Pick a session, **↵** Go to session, **⌘↵** New session in its folder or in ~), and the two crossfade as you start typing. **⌥↓** sits right beside the launch values it opens.
+While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so the same bar says what the keys do there, following what is highlighted (**↓** Choose, **↵** Open, and your shortcut or **⌘↵** for a New session), and the two crossfade as you start typing. **⌥↓** sits right beside the launch values it opens.
 
 **esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
@@ -35,7 +35,7 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right: the five-hour session (**5h**) and the **Week**, each as a small meter with its percentage and the time left until it resets. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right: the five-hour session (**5h**) and the **Week**, each as a small meter with its percentage and the time left until it resets (in hours and minutes for the session, hours or days for the week). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
 The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
@@ -70,7 +70,7 @@ There is no separate "default" value, and every time the palette opens the optio
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the palette fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
 
-The shortcut is set in `App.swift` (`openClaudeShortcut`) and applied again on every launch. While the app runs, ⌥C no longer types "©".
+The shortcut is ⌥C unless another is picked in the setup; while the app runs, that key no longer types its character (⌥C types "©").
 
 Opening the app from Spotlight or Finder also shows the palette. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
 
@@ -96,6 +96,15 @@ defaults write com.aaangelmartin.open-claude theme laaabs   # or claude
 pkill -x OpenClaude; open ~/Applications/"Open Claude.app"
 ```
 
+## Setup
+
+The first launch opens a short setup, in the palette's own look, and **⌘,** in the palette brings it back:
+
+1. **Welcome**: what the palette does.
+2. **Check your setup**: Claude Code installed (and its version), permission to control Terminal (with a button to ask for it), Claude Code signed in (needed for the plan's use; only its presence is checked), the Claude app (for its font), and start at login, which can be switched here.
+3. **Your shortcut**: a recorder to pick it; ⌥C by default.
+4. **You're set**: the shortcut on its key caps, and the palette.
+
 ## Install
 
 Requirements:
@@ -114,7 +123,7 @@ The script:
 3. Signs with the first valid "Developer ID Application" certificate in the keychain. `SIGN_IDENTITY=-` signs ad hoc.
 4. Installs it in `~/Applications` and opens it.
 
-On first launch it adds itself to the login items and shows the palette once.
+On first launch it adds itself to the login items and opens the setup.
 
 ## macOS permissions
 
@@ -137,6 +146,8 @@ Sources/OpenClaude/
   Projects.swift       known projects, claude's sessions, git branches and fuzzy matching
   Usage.swift          the plan's session and weekly use
   LiveSessions.swift   the claude sessions running now, their state, and bringing one forward
+  Setup.swift          the checks the setup shows (claude code, terminal, sign-in, login item)
+  Onboarding.swift     the first-run setup window
   Terminal.swift       the AppleScript that opens the Terminal window
   LaunchOptions.swift  model, effort, permissions and session, and the claude flags they add
   ModelVersions.swift  the newest model numbers, read from the installed claude

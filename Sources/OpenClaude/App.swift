@@ -3,16 +3,14 @@ import KeyboardShortcuts
 import ServiceManagement
 
 extension KeyboardShortcuts.Name {
-    static let openClaude = Self("openClaude")
+    /// ⌥C unless another was picked in the onboarding
+    static let openClaude = Self("openClaude", default: .init(.c, modifiers: [.option]))
 }
-
-/// option c: what the keychron key sends. there is no recorder in the app, so this is set at every
-/// launch: a stored older shortcut never outlives a change here.
-private let openClaudeShortcut = KeyboardShortcuts.Shortcut(.c, modifiers: [.option])
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var palette: PaletteController?
+    private let onboarding = OnboardingController()
 
     /// the app was "Abrir Claude" (com.aaangelmartin.abrir-claude) before: its recent folders come along once
     private static func bringOverRecents() {
@@ -29,19 +27,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.bringOverRecents()
         let palette = PaletteController()
         self.palette = palette
-        KeyboardShortcuts.setShortcut(openClaudeShortcut, for: .openClaude)
         // on key down, as claude's own quick entry: it opens while the key is still going down
         KeyboardShortcuts.onKeyDown(for: .openClaude) { [weak palette] in
             MainActor.assumeIsolated { palette?.hotkey() }
         }
 
-        // the first launch: start at login from now on, and show the palette once so it is clear it works
+        palette.onSetup = { [weak self] in self?.onboarding.show() }
+        onboarding.onFinish = { [weak palette] in palette?.show() }
+
+        // the first launch: start at login from now on, and walk through the setup once
         let defaults = UserDefaults.standard
         if !defaults.bool(forKey: "didFirstLaunch") {
             defaults.set(true, forKey: "didFirstLaunch")
             try? SMAppService.mainApp.register()
-            palette.show()
         }
+        if !OnboardingController.isDone { onboarding.show() }
     }
 
     // opening the app again while it runs (finder, spotlight) shows the palette
