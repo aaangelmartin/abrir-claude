@@ -76,7 +76,6 @@ struct OptionsSection: View {
             item(LaunchOptions.model) {
                 ModelName(label: model.display(model.choice(of: LaunchOptions.model), of: LaunchOptions.model), on: true, theme: theme)
             }
-            dot
             item(LaunchOptions.effort) {
                 let choice = model.choice(of: LaunchOptions.effort)
                 HStack(spacing: 5) {
@@ -84,7 +83,6 @@ struct OptionsSection: View {
                     PaintedText(text: choice.label, paint: choice.paint, font: theme.chip, bold: true)
                 }
             }
-            dot
             item(LaunchOptions.permissions) {
                 let choice = model.choice(of: LaunchOptions.permissions)
                 HStack(spacing: 5) {
@@ -94,7 +92,6 @@ struct OptionsSection: View {
                     PaintedText(text: theme.say(choice.label), paint: choice.paint == .plain(CC.inactive) ? .plain(RGB(255, 255, 255)) : choice.paint, font: theme.chip, bold: true)
                 }
             }
-            dot
             item(LaunchOptions.session) {
                 let choice = model.choice(of: LaunchOptions.session)
                 HStack(spacing: 5) {
@@ -124,10 +121,6 @@ struct OptionsSection: View {
             .frame(height: 28)
             .contentShape(Rectangle())
             .onTapGesture { model.openOptions(at: index) }
-    }
-
-    private var dot: some View {
-        Text("·").font(theme.chip).foregroundStyle(Color.white.opacity(0.25))
     }
 }
 
