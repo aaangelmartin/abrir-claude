@@ -1,6 +1,6 @@
 # open claude
 
-A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each moment has one purpose:
+A global shortcut (⌥C) brings up Open Claude, a quick window for Claude Code on your Mac. Each moment has one purpose:
 
 1. **Opened**: every Claude Code session running now, with its state. **↵** goes to it.
 2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
@@ -8,11 +8,11 @@ A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each momen
 
 While searching and in a folder, where a session starts or resumes, model, effort and permissions sit at the bottom (`claude --resume` takes them too); **⌥↓**, or a click on a value, opens them. Over the running sessions they would mean nothing, so the same bar says what the keys do there, following what is highlighted (**↓** Choose, **↵** Open, and your shortcut or **⌘↵** for a New session), and the two crossfade as you start typing. **⌥↓** sits right beside the launch values it opens.
 
-**esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
+**esc** backs out one step at a time (the folder, then what is typed, then the window); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
 ## Running sessions
 
-Read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
+Read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while Open Claude is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first. Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
 
 ## Folders
 
@@ -31,7 +31,7 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 - **↑ ↓** move through the list, and **↑** at the top stays there. Running sessions start with nothing highlighted; a search lights its best match (not when a path ending in `/` lists that folder's subfolders: then **↵** opens the folder itself); a folder lights New session.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
-- **⌘W** or a click outside close the palette; **⌘Q** quits the app (it starts again at login or from Applications).
+- **⌘W** or a click outside close Open Claude; **⌘Q** quits the app (it starts again at login or from Applications).
 
 ## Launch options and plan use
 
@@ -66,13 +66,13 @@ Keys in the options:
 - **esc** or **⌥↑** fold the options.
 - **↵** or **⌥C** launch Claude.
 
-There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
+There is no separate "default" value, and every time Open Claude opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. Motion stays short and without bounce: the palette fades in, the highlight moves in a tenth of a second, a folder slides in from the right, the card resizes only when the view changes (not on every key typed), and the bottom bar crossfades between keys and options.
 
 The shortcut is ⌥C unless another is picked in the setup; while the app runs, that key no longer types its character (⌥C types "©").
 
-Opening the app from Spotlight or Finder also shows the palette. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
+Opening the app from Spotlight or Finder also brings up Open Claude. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
 
 ## Look
 
@@ -98,12 +98,12 @@ pkill -x OpenClaude; open ~/Applications/"Open Claude.app"
 
 ## Setup
 
-The first launch opens a short setup, in the palette's own look, and **⌘,** in the palette brings it back:
+The first launch opens a short setup, in Open Claude's own look, and **⌘,** brings it back:
 
-1. **Welcome**: what the palette does.
+1. **Welcome**: what Open Claude does.
 2. **Check your setup**: Claude Code installed (and its version), permission to control Terminal (with a button to ask for it), Claude Code signed in (needed for the plan's use; only its presence is checked), the Claude app (for its font), and start at login, which can be switched here.
 3. **Your shortcut**: a recorder to pick it; ⌥C by default.
-4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there opens the palette.
+4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there brings up Open Claude.
 
 The welcome is signed with the aaangelmartin wordmark.
 
@@ -129,7 +129,7 @@ On first launch it adds itself to the login items and opens the setup.
 
 ## macOS permissions
 
-- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, the palette says so and offers a button to System Settings → Privacy & Security → Automation.
+- **Control Terminal** (Automation): asked the first time you open a folder. If you deny it, Open Claude says so and offers a button to System Settings → Privacy & Security → Automation.
 - **Login item**: macOS posts a notification that it was added. Manage it in System Settings → General → Login Items.
 
 The global shortcut needs no Accessibility permission, since it uses `KeyboardShortcuts` (Carbon hotkeys).
@@ -140,7 +140,7 @@ The global shortcut needs no Accessibility permission, since it uses `KeyboardSh
 Sources/OpenClaude/
   App.swift            launch, global shortcut, login item
   PalettePanel.swift   floating panel that never activates the app, keys, position
-  PaletteView.swift    the palette in SwiftUI
+  PaletteView.swift    the window's content in SwiftUI
   Theme.swift          the two styles (claude and laaabs.) and loading Claude's fonts
   PaletteModel.swift   text, rows, selection, notices, options
   FolderPath.swift     from what is typed to an absolute path and a shell command
@@ -157,7 +157,7 @@ Sources/OpenClaude/
 Resources/             Info.plist, entitlements, the claude mark and the aaangelmartin wordmark (svg)
 scripts/               install.sh, make-icon.swift
 Tests/                 paths, suggestions, selection, options and model versions (swift test)
-                       SNAPSHOT_DIR=/path swift test --filter Snapshot renders the palette to png off screen
+                       SNAPSHOT_DIR=/path swift test --filter Snapshot renders every view to png off screen
 ```
 
 ## Uninstall

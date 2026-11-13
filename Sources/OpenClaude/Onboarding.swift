@@ -149,7 +149,7 @@ struct OnboardingView: View {
                     .buttonStyle(QuietButtonStyle(theme: theme))
                     .keyboardShortcut(.cancelAction)
             }
-            Button(theme.say(step == .done ? "Open the palette" : "Continue")) {
+            Button(theme.say(step == .done ? "Get started" : "Continue")) {
                 if step == .done { finish() } else { move(1) }
             }
             .buttonStyle(BrandButtonStyle(theme: theme))
@@ -296,7 +296,7 @@ private struct ShortcutStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
-            StepTitle(title: "Your shortcut", line: "Press it anywhere to open the palette. Press it again to start a session at once.", theme: theme)
+            StepTitle(title: "Your shortcut", line: "Press it anywhere to bring up Open Claude. Press it again to start a session at once.", theme: theme)
             HStack {
                 Spacer()
                 KeyboardShortcuts.Recorder(for: .openClaude)
@@ -349,7 +349,7 @@ private struct DoneStep: View {
                         .animation(.easeOut(duration: 0.08), value: down)
                 }
             }
-            Text(theme.say("Press it now, or anywhere later. ⌘, in the palette brings this back."))
+            Text(theme.say("Press it now, or anytime. ⌘, brings this setup back."))
                 .font(theme.row)
                 .foregroundStyle(theme.textSecondary)
             Spacer(minLength: 10)
