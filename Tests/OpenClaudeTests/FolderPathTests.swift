@@ -282,6 +282,24 @@ import Testing
         #expect(closed)
     }
 
+    @Test func tabLightsTheFirstLine() {
+        let m = model(live: [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())])
+        _ = m.handle(.tab)
+        #expect(m.selected == 0)
+    }
+
+    @Test func theShortcutAgainStartsInTheLitFolderOrHome() {
+        let m = model()
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
+        m.hotkeyAgain()
+        #expect(opened == "")
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        m.hotkeyAgain()
+        #expect(opened == "Developer")
+    }
+
     @Test func upAtTheTopStaysThere() {
         let m = model()
         m.text = "Dev"

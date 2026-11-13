@@ -193,13 +193,14 @@ final class PaletteModel: ObservableObject {
             let folder = selected.flatMap { live.indices.contains($0) ? FolderPath.display(live[$0].cwd) : nil } ?? ""
             onOpen(folder, LaunchOptions.args(for: picks))
         case .folders:
-            guard let folder = folderTarget else { NSSound.beep(); return }
-            onOpen(folder, LaunchOptions.args(for: picks))
+            // the lit folder, or what is typed when it is one, else the home folder
+            onOpen(folderTarget ?? "", LaunchOptions.args(for: picks))
         }
     }
 
-    /// the shortcut pressed with the palette open: as enter
-    func hotkeyAgain() { submit() }
+    /// the shortcut pressed with the palette open: a new session now, in the folder open or lit, or
+    /// in the home folder
+    func hotkeyAgain() { openNew() }
 
     /// what is typed, when it is a folder itself
     var typedFolder: String? {
@@ -379,7 +380,13 @@ final class PaletteModel: ObservableObject {
             if moment == .step { closeStep() } else if !text.isEmpty { text = "" } else { close() }
         case .enter: submit()
         case .openNew: openNew()
-        case .tab: complete()
+        case .tab:
+            // with nothing lit, tab lights the first line; on a folder while typing it completes it
+            if selected == nil {
+                if count > 0 { selectedByPointer = false; selected = 0 }
+            } else {
+                complete()
+            }
         case .right:
             // → at the end of the text opens the lit folder's step; elsewhere it moves the caret
             guard moment == .folders, caretAtEnd(), let s = selected, rows.indices.contains(s) else { return false }

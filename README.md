@@ -6,7 +6,7 @@ A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each momen
 2. **Typing**: folders, to start or resume a session in. **↵** opens the folder.
 3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes; model, effort and permissions sit below.
 
-**esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌘↵** starts a new session at once, in the highlighted folder or session's folder. **⌥C** pressed again acts as **↵**.
+**esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
 ## Running sessions
 
