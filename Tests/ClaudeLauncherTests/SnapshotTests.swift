@@ -58,7 +58,7 @@ import Testing
     @Test func optionsAllDefaultOpen() { shot("9-defaults-open") { m in m.reset(); for i in 0..<3 { m.pick(0, of: i) }; m.text = "Developer"; _ = m.handle(.enter); _ = m.handle(.optionsDown) } }
     private static func sample() -> [String: ProjectInfo] {
         let home = FolderPath.home
-        let s = (0..<4).map { SessionInfo(id: "s\($0)", title: ["Add plan usage to the palette", "Fuzzy project search like T3 Code", "Fix the effort slider", "Translate everything to English"][$0], updated: Date().addingTimeInterval(-Double($0 + 1) * 5000)) }
+        let s = (0..<4).map { SessionInfo(id: "s\($0)", title: ["Add plan usage to the launcher", "Fuzzy project search like T3 Code", "Fix the effort slider", "Translate everything to English"][$0], updated: Date().addingTimeInterval(-Double($0 + 1) * 5000)) }
         return [
             home + "/Developer/claude-launcher": ProjectInfo(path: home + "/Developer/claude-launcher", lastUsed: Date().addingTimeInterval(-600), sessions: s, branch: "main"),
             home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date().addingTimeInterval(-86_400 * 2)),

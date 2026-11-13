@@ -113,7 +113,7 @@ struct MainView: View {
         .frame(height: Self.barHeight)
     }
 
-    private var placeholder: String { "Open Claude in…" }
+    private var placeholder: String { "Launch Claude in…" }
 
     private func hint(_ line: String) -> some View {
         Text(theme.say(line))
