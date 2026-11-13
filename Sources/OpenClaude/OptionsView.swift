@@ -90,23 +90,18 @@ struct OptionsSection: View {
                     PaintedText(text: theme.say(choice.label), paint: choice.paint == .plain(CC.inactive) ? .plain(RGB(255, 255, 255)) : choice.paint, font: theme.chip, bold: true)
                 }
             }
-            item(LaunchOptions.session) {
-                let choice = model.choice(of: LaunchOptions.session)
-                HStack(spacing: 5) {
-                    if let icon = choice.icon { Image(systemName: icon).font(.system(size: 10.5)) }
-                    Text(theme.say(model.picks[LaunchOptions.session] == 0 ? "New session" : choice.label))
-                }
-                .foregroundStyle(model.picks[LaunchOptions.session] == 0 ? theme.textMuted : theme.text)
-            }
             Spacer(minLength: 8)
             if let usage = model.usage {
                 UsageLine(usage: usage, theme: theme)
                     .padding(.trailing, 10)
                     .transition(.opacity)
             }
-            Image(systemName: "chevron.down")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(theme.textMuted.opacity(0.7))
+            HStack(spacing: 5) {
+                Text("⌥↓").font(theme.label)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(theme.textMuted.opacity(0.7))
+            .help("Options (⌥↓)")
         }
         .font(theme.chip)
         .padding(.leading, 12)

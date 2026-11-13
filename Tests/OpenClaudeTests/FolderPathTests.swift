@@ -67,6 +67,35 @@ import Testing
 }
 
 @MainActor
+@Suite struct EnterTests {
+    @Test func enterOnAFolderWithSessionsListsThem() {
+        let m = PaletteModel()
+        let home = FolderPath.home
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
+        m.text = "Developer"
+        _ = m.handle(.enter)
+        #expect(m.sessionsFolder == "Developer")
+        #expect(opened == nil)
+        _ = m.handle(.down)
+        _ = m.handle(.enter)
+        #expect(opened == "Developer")
+    }
+
+    @Test func commandEnterOpensANewSessionAtOnce() {
+        let m = PaletteModel()
+        let home = FolderPath.home
+        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
+        var args: [String]?
+        m.onOpen = { _, a in args = a }
+        m.text = "Developer"
+        _ = m.handle(.openNew)
+        #expect(args == [])
+    }
+}
+
+@MainActor
 @Suite struct SelectionTests {
     @Test func typingLightsNothing() {
         let m = PaletteModel()
@@ -77,14 +106,14 @@ import Testing
 
 @Suite struct LaunchOptionsTests {
     @Test func defaultsAddNothing() {
-        #expect(LaunchOptions.args(for: [0, 0, 0, 0]).isEmpty)
+        #expect(LaunchOptions.args(for: [0, 0, 0]).isEmpty)
     }
 
     @Test func picksBecomeFlagsInOrder() {
         // opus, high effort, plan, continue
-        #expect(LaunchOptions.args(for: [2, 3, 3, 1]) == ["--model", "opus", "--effort", "high", "--permission-mode", "plan", "--continue"])
+        #expect(LaunchOptions.args(for: [2, 3, 3]) == ["--model", "opus", "--effort", "high", "--permission-mode", "plan"])
         // max effort, bypass permissions
-        #expect(LaunchOptions.args(for: [0, 5, 5, 0]) == ["--effort", "max", "--permission-mode", "bypassPermissions"])
+        #expect(LaunchOptions.args(for: [0, 5, 5]) == ["--effort", "max", "--permission-mode", "bypassPermissions"])
     }
 
 
@@ -167,9 +196,9 @@ import Testing
     @Test func openingStartsFromTheDefaults() {
         let m = PaletteModel()
         m.pick(3, of: LaunchOptions.effort)
-        m.pick(2, of: LaunchOptions.session)
+        m.pick(2, of: LaunchOptions.permissions)
         m.reset()
-        #expect(m.picks == [0, 0, 0, 0])
+        #expect(m.picks == [0, 0, 0])
     }
 
     @Test func pickingTheDefaultLevelAddsNoFlag() {

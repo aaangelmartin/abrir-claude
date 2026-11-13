@@ -14,6 +14,8 @@ final class PaletteModel: ObservableObject {
     enum Key {
         case up, down, left, right, enter, tab, escape, space
         case jumpDown, jumpUp // ⌘↓ ⌘↑
+        case optionsDown, optionsUp // ⌥↓ ⌥↑: open and fold the options
+        case openNew // ⌘↵: a new session straight away, no session list
     }
 
     @Published var text = "" { didSet { if text != oldValue { textChanged() } } }
@@ -175,12 +177,10 @@ final class PaletteModel: ObservableObject {
     /// open claude in the folder: a new session (0) or one of its sessions resumed
     func openSession(_ index: Int) {
         guard let folder = sessionsFolder else { return }
-        var picksForNew = picks
-        picksForNew[LaunchOptions.session] = 0
-        if index == 0 { onOpen(folder, LaunchOptions.args(for: picksForNew)); return }
+        if index == 0 { onOpen(folder, LaunchOptions.args(for: picks)); return }
         let list = sessionList
         guard list.indices.contains(index - 1) else { return }
-        onOpen(folder, LaunchOptions.args(for: picksForNew) + ["--resume", list[index - 1].id])
+        onOpen(folder, LaunchOptions.args(for: picks) + ["--resume", list[index - 1].id])
     }
 
     private func handleSessions(_ key: Key) -> Bool {
@@ -191,8 +191,9 @@ final class PaletteModel: ObservableObject {
         case .jumpUp: sessionSelected = 0
         case .jumpDown: sessionSelected = last
         case .enter: openSession(sessionSelected)
+        case .openNew: openSession(0)
         case .left, .escape: closeSessions()
-        case .right, .tab, .space: break
+        case .right, .tab, .space, .optionsDown, .optionsUp: break
         }
         return true
     }
@@ -304,6 +305,9 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
+        // the options open and fold from anywhere
+        if key == .optionsDown { optionRow = optionRow ?? 0; return true }
+        if key == .optionsUp { optionRow = nil; return true }
         if sessionsFolder != nil, optionRow == nil { return handleSessions(key) }
         if let optionRow { return handleOptions(key, optionRow) }
         return handleField(key)
@@ -312,20 +316,19 @@ final class PaletteModel: ObservableObject {
     private func handleField(_ key: Key) -> Bool {
         switch key {
         case .down:
-            if rows.isEmpty { optionRow = 0; return true }
+            // the last row is the end: the options open with ⌥↓, not by running past the folders
+            guard !rows.isEmpty else { return true }
             selectedByPointer = false
-            if let selected {
-                if selected == rows.count - 1 { optionRow = 0 } else { self.selected = selected + 1 }
-            } else {
-                selected = 0
-            }
+            if let selected { self.selected = min(selected + 1, rows.count - 1) } else { selected = 0 }
         case .up:
             // at the top already: stay there, never wrap round to the bottom
             guard !rows.isEmpty, let selected else { return true }
             selectedByPointer = false
             self.selected = selected == 0 ? nil : selected - 1
-        case .jumpDown: optionRow = 0
+        case .jumpDown: if !rows.isEmpty { selectedByPointer = false; selected = rows.count - 1 }
         case .jumpUp: selected = nil
+        case .openNew: openNew()
+        case .optionsDown, .optionsUp: break
         case .tab: complete()
         case .enter: submit()
         case .escape: close()
@@ -351,7 +354,8 @@ final class PaletteModel: ObservableObject {
         case .left: step(row, by: -1)
         case .right: step(row, by: 1)
         case .enter: submit()
-        case .space: break // the field keeps its text
+        case .openNew: openNew()
+        case .space, .optionsDown, .optionsUp: break // the field keeps its text
         }
         return true
     }
@@ -365,13 +369,28 @@ final class PaletteModel: ObservableObject {
 
     /// enter: the lit row, or what is typed. a name that is no folder (typed to search) with nothing
     /// lit opens nothing: a terminal with a cd error helps no one.
+    /// enter on a folder with claude sessions lists them (a new one first) to pick from; a folder
+    /// without any opens straight away.
     func submit() {
-        let typed = text.trimmingCharacters(in: .whitespaces)
-        if selected == nil, !typed.isEmpty, !FolderPath.isDirectory(FolderPath.resolve(typed)) {
-            NSSound.beep()
-            return
+        guard targetIsOpenable else { NSSound.beep(); return }
+        if info(for: target)?.sessions.isEmpty == false {
+            optionRow = nil
+            openSessions(of: target)
+        } else {
+            onOpen(target, LaunchOptions.args(for: picks))
         }
+    }
+
+    /// ⌘↵, or the shortcut again: a new session in the folder now, without the list
+    func openNew() {
+        if sessionsFolder != nil { openSession(0); return }
+        guard targetIsOpenable else { NSSound.beep(); return }
         onOpen(target, LaunchOptions.args(for: picks))
+    }
+
+    private var targetIsOpenable: Bool {
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        return selected != nil || typed.isEmpty || FolderPath.isDirectory(FolderPath.resolve(typed))
     }
     func open(row: String) { onOpen(row, LaunchOptions.args(for: picks)) }
     func close() { onClose() }

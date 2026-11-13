@@ -306,7 +306,7 @@ private struct FolderRow: View {
             Spacer(minLength: 12)
             if let info { meta(info) }
         }
-        .padding(.trailing, 6)
+        .padding(.trailing, 12)
         .frame(height: PaletteView.rowHeight)
         .background(
             isSelected ? theme.rowSelected : .clear,
@@ -338,18 +338,16 @@ private struct FolderRow: View {
                         Text(info.sessions.count == 1 ? "1 session" : "\(info.sessions.count) sessions").monospacedDigit()
                         Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
                     }
-                    .padding(.horizontal, 7)
                     .frame(height: 22)
-                    .background(isSelected ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 6))
                     .contentShape(Rectangle())
                     .onTapGesture(perform: openSessions)
-                    .help(isSelected ? "Sessions (→)" : "Sessions")
+                    .help("Sessions")
                 }
             }
             .frame(width: 92, alignment: .trailing)
         }
         .font(theme.label)
-        .foregroundStyle(isSelected ? theme.textSecondary : theme.textMuted.opacity(0.8))
+        .foregroundStyle(theme.textMuted.opacity(0.8))
         .lineLimit(1)
     }
 

@@ -20,14 +20,16 @@ Each known project shows on the right, in columns that line up, its git branch, 
 
 ### Sessions
 
-**→** on a highlighted project (with the caret at the end of the text), or a click on its session count, lists its Claude sessions in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
+**↵** on a folder with Claude sessions (or **→** with the caret at the end of the text, or a click on its session count) lists its Claude sessions in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
 
 Keys:
-- **⌥C** opens the palette. With the palette open, pressing it again acts as Enter: **⌥C ⌥C** opens Claude straight in your home folder.
-- **↵** opens the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
+- **⌥C** opens the palette. With the palette open, pressing it again opens a new session at once: **⌥C ⌥C** opens Claude straight in your home folder.
+- **⌘↵** opens a new session at once, without the session list.
+- **⌥↓** opens the options at the bottom, **⌥↑** folds them.
+- **↵** on a folder with Claude sessions lists them (a new session first); on one without any it opens Claude straight away. It acts on the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
 - **tab** completes with the highlighted row and lists that folder's subfolders. With no row highlighted it does nothing.
-- **→** at the end of the text opens the highlighted project's sessions.
-- **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. Past the last one you reach the options.
+- **→** at the end of the text also lists the highlighted project's sessions.
+- **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. The last row is the end of the list.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
 - **esc**, **⌘W** or a click outside close the palette.
 - **⌘Q** with the palette open quits the app. It starts again at login or from Applications.
@@ -36,14 +38,13 @@ Keys:
 
 On the right of the summary line sits the plan's use, as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-At the bottom, one line says how Claude will be launched: **Model, Effort, Permissions, Session**, each value painted the way Claude Code paints it. **↓** past the last folder (or **⌘↓**, or a click) opens it into one row per option:
+At the bottom, one line says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|
 | Model | full-width segmented control: Fable, Opus, Sonnet, Haiku, each with its number (Opus 5.5), read from the installed `claude` so it updates on its own. The model Claude starts with (your settings' model, or Opus) is marked *default* | `--model` with the alias (`opus`), which always runs the newest |
 | Effort | a track with the five levels, Faster to Smarter: low, medium, high, xhigh, max. The level the chosen model starts with is marked *default* (medium for Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable 5.2), read from the model table inside `claude`; the ball sits there until you pick another. The ball carries a dot of the level's colour and glows in it; dragged, it follows the pointer and settles on the nearest level | `--effort` |
 | Permissions | the modes Claude's Code view offers, in its order: Manual, Accept edits, Plan, Auto, Bypass. The mode your settings choose is marked *default*. The picked one is tinted in its colour; hover a mode to see what it does | `--permission-mode` |
-| Session | segmented control: New, Continue, Resume | `--continue`, `--resume` |
 
 The colours come from the dark theme table inside `claude` itself:
 
@@ -63,7 +64,7 @@ The colours come from the dark theme table inside `claude` itself:
 Keys in the options:
 - **↑ ↓** move between rows, and **↑** from the first goes back to the folders.
 - **← →** change the value.
-- **esc** folds the options; a second **esc** closes the palette.
+- **esc** or **⌥↑** fold the options; a second **esc** closes the palette.
 - **↵** or **⌥C** launch Claude.
 
 There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Every time the palette opens, the options start again from the defaults.

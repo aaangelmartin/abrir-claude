@@ -77,7 +77,7 @@ final class PaletteController: NSObject, NSWindowDelegate {
 
     /// the hotkey: the first press opens the palette, a second press while it is open acts as enter,
     /// so pressing it twice opens claude in the home folder straight away
-    func hotkey() { isVisible ? model.submit() : show() }
+    func hotkey() { isVisible ? model.openNew() : show() }
 
     func show(keepingNotice: Bool = false) {
         if !keepingNotice { model.reset() }
@@ -149,14 +149,15 @@ final class PaletteController: NSObject, NSWindowDelegate {
             return true
         }
         let command = mods.contains(.command)
+        let option = mods.contains(.option)
         let key: PaletteModel.Key
         switch event.keyCode {
         case 53: key = .escape
-        case 36, 76: key = .enter
+        case 36, 76: key = command ? .openNew : .enter
         case 48: key = .tab
         case 49: key = .space
-        case 125: key = command ? .jumpDown : .down
-        case 126: key = command ? .jumpUp : .up
+        case 125: key = option ? .optionsDown : command ? .jumpDown : .down
+        case 126: key = option ? .optionsUp : command ? .jumpUp : .up
         case 123 where !command: key = .left
         case 124 where !command: key = .right
         default: return false

@@ -64,7 +64,7 @@ struct LaunchOption: Identifiable, Sendable {
 }
 
 enum LaunchOptions {
-    static let model = 0, effort = 1, permissions = 2, session = 3
+    static let model = 0, effort = 1, permissions = 2
 
     /// every value maps to a flag `claude --help` lists; the first value of each adds nothing, so
     /// claude's own default (or settings.json) applies
@@ -96,11 +96,6 @@ enum LaunchOptions {
             Choice(label: "Plan", args: ["--permission-mode", "plan"], symbol: "⏸", paint: .plain(CC.planMode), detail: "Only reads and proposes a plan"),
             Choice(label: "Auto", args: ["--permission-mode", "auto"], symbol: "⏵⏵", paint: .plain(CC.warning), detail: "Decides on its own what is safe"),
             Choice(label: "Bypass", args: ["--permission-mode", "bypassPermissions"], symbol: "⏵⏵", paint: .plain(CC.error), detail: "Bypasses every permission check"),
-        ]),
-        LaunchOption(id: "session", title: "Session", style: .segments, defaultIsMarked: false, choices: [
-            Choice(label: "New", args: [], icon: "plus"),
-            Choice(label: "Continue", args: ["--continue"], icon: "arrow.uturn.forward"),
-            Choice(label: "Resume", args: ["--resume"], icon: "clock.arrow.circlepath"),
         ]),
     ]
 
