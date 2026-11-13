@@ -67,42 +67,32 @@ import Testing
 }
 
 @MainActor
-@Suite struct EnterTests {
-    @Test func enterOnAFolderWithSessionsListsThem() {
+@Suite struct ModeTests {
+    @Test func opensOnSessionsAndTabGoesToNew() {
         let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
-        var opened: String?
-        m.onOpen = { raw, _ in opened = raw }
-        m.text = "Developer"
-        _ = m.handle(.enter)
-        #expect(m.sessionsFolder == "Developer")
-        #expect(opened == nil)
-        _ = m.handle(.down)
-        _ = m.handle(.enter)
-        #expect(opened == "Developer")
+        m.reset()
+        #expect(m.mode == .sessions)
+        _ = m.handle(.tab)
+        #expect(m.mode == .new)
+        _ = m.handle(.escape)
+        #expect(m.mode == .sessions)
     }
 
-    @Test func enterOnAFolderWithoutSessionsStillAsks() {
+    @Test func enterOnAFolderStartsANewSessionThere() {
         let m = PaletteModel()
-        var opened = false
-        m.onOpen = { _, _ in opened = true }
+        m.switchMode(to: .new)
+        var opened: (String, [String])?
+        m.onOpen = { opened = ($0, $1) }
         m.text = "Developer"
-        m.projects = [:]
         _ = m.handle(.enter)
-        #expect(m.sessionsFolder == "Developer")
-        #expect(!opened)
+        #expect(opened?.0 == "Developer")
+        #expect(opened?.1 == [])
     }
 
-    @Test func commandEnterOpensANewSessionAtOnce() {
+    @Test func sessionsListEveryRunningOne() {
         let m = PaletteModel()
-        let home = FolderPath.home
-        m.projects = [home + "/Developer": ProjectInfo(path: home + "/Developer", lastUsed: Date(), sessions: [SessionInfo(id: "a", title: "t", updated: Date())])]
-        var args: [String]?
-        m.onOpen = { _, a in args = a }
-        m.text = "Developer"
-        _ = m.handle(.openNew)
-        #expect(args == [])
+        m.live = (0..<9).map { LiveSession(pid: Int32($0 + 1), sessionId: "\($0)", cwd: "/tmp", name: "s\($0)", state: .idle, waitingFor: nil, since: Date()) }
+        #expect(m.shownLive.count == 9)
     }
 }
 
@@ -185,6 +175,7 @@ import Testing
 @Suite struct KeyTests {
     @Test func upAtTheTopStaysThere() {
         let m = PaletteModel()
+        m.switchMode(to: .new)
         m.text = "Dev"
         guard !m.rows.isEmpty else { return }
         m.selected = nil
@@ -194,6 +185,7 @@ import Testing
 
     @Test func tabWithNothingLitDoesNothing() {
         let m = PaletteModel()
+        m.switchMode(to: .new)
         m.text = "Dev"
         m.selected = nil
         _ = m.handle(.tab)
@@ -280,20 +272,13 @@ import Testing
 
 @MainActor
 @Suite struct ActiveNavigationTests {
-    @Test func downGoesThroughActiveThenFolders() {
+    @Test func downAndUpThroughRunningSessions() {
         let m = PaletteModel()
         m.live = [LiveSession(pid: 1, sessionId: "a", cwd: "/tmp", name: "one", state: .busy, waitingFor: nil, since: Date())]
-        m.text = ""
         _ = m.handle(.down)
-        #expect(m.liveSelected == 0)
+        #expect(m.selected == 0)
         _ = m.handle(.up)
-        #expect(m.liveSelected == nil)
-    }
-
-    @Test func nothingTypedShowsNoFolders() {
-        let m = PaletteModel()
-        m.reset()
-        #expect(m.rows.isEmpty)
+        #expect(m.selected == nil)
     }
 
     @Test func typingFindsPastSessionsByTitleAndEnterResumes() {
@@ -304,9 +289,8 @@ import Testing
         var got: (String, [String])?
         m.onOpen = { got = ($0, $1) }
         m.text = "effort slider"
-        #expect(m.sessionMatches.count == 1)
+        #expect(m.pastShown.count == 1)
         _ = m.handle(.down)
-        #expect(m.matchSelected == 0)
         _ = m.handle(.enter)
         #expect(got?.0 == "Developer")
         #expect(got?.1 == ["--resume", "s1"])

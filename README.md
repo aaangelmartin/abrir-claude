@@ -1,57 +1,50 @@
 # open claude
 
-A global shortcut (⌥C) opens a palette with the Claude Code sessions running now, and finds any folder or past session to open Claude Code in. Confirm, and it opens a new Terminal window, `cd`s into that folder and runs `claude`.
+A global shortcut (⌥C) opens a palette for Claude Code on your Mac. It has two modes, each doing one thing, switched with **Tab**, **⌘N** or the switch at the end of the bar:
 
-## Usage
+- **Sessions**, where it opens: the Claude Code sessions running now, and past ones as you type. **↵** goes to a running session or resumes a past one.
+- **New**: folders only, with the launch options below. **↵** opens a new Terminal window, `cd`s into the folder and runs `claude`.
 
-| You type | It opens in |
-|---|---|
-| nothing | your home folder |
-| `projects/my-app` | `~/projects/my-app` |
-| `~/projects/my-app` | same as above |
-| `/Volumes/disk/work` | that absolute path |
-| a folder that does not exist | Terminal shows the `cd` error and claude does not start |
+## Sessions
 
-### Active sessions
+With nothing typed, it lists every Claude Code session running now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over), with how long it has been so, its name and its folder. What needs you comes first.
 
-With nothing typed, the palette lists only the Claude Code sessions running right now on this Mac, read from `~/.claude/sessions` (Claude Code keeps a record there for each live session) and refreshed while the palette is open. Each shows its state with the words and icons Claude's Code view filters by: **Needs input** (a raised hand, in Claude Code's warning yellow), **Working** (a turning arc in Claude's orange, only while Claude itself is working) or **Completed** (a ticked circle, dimmed, once its turn is over); with how long it has been so, its name and its folder. What needs you comes first; five are listed, and typing finds the rest by name or folder.
+Type to narrow them by name or folder; past sessions appear below, under **Past**: those whose title has every word typed, or whose folder matches, newest first (their title is the session's own, else its first message; only the start and end of each file in `~/.claude/projects` are read, so even very long sessions list at once).
 
-- **↵** goes to the session: its Terminal tab is brought forward, or the app it runs in when it is not in Terminal.
-- **⌘↵** opens a new session in that session's folder.
+- **↵** on a running session brings its Terminal tab forward (or the app it runs in, when it is not in Terminal); on a past one it resumes it in its folder with `claude --resume <id>`.
+- **⌘↵** opens a new session in the highlighted session's folder, or your home folder when nothing is highlighted.
+- **Tab** goes to the New mode; **esc** closes the palette.
 
 Only sessions of the `claude` CLI on this Mac show up; the desktop app and cloud sessions keep no record there.
 
-### Projects
+## New
 
-Folders and past sessions appear as you type. Type a name rather than a path and it searches fuzzily, like a command palette: the letters in order, anywhere, so `ocl` finds `Developer/open-claude`. It searches your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Type a `/` and it goes back to completing the path, folder by folder.
+| You type | It opens in |
+|---|---|
+| nothing | the highlighted recent folder, or your home folder |
+| a name, like `ocl` | the folders that match it fuzzily: the letters in order, anywhere, so `ocl` finds `Developer/open-claude` |
+| `projects/my-app` or `~/projects/my-app` | `~/projects/my-app`, completed folder by folder |
+| `/Volumes/disk/work` | that absolute path |
 
-Each known project shows on the right, in columns that line up, its git branch, when it was last used ("10m ago") and how many Claude sessions it has ("4 sessions ›"). Claude Code's sessions in `~/.claude/projects` are what make a folder known and give it its last use.
+With nothing typed it lists the folders used last, here or in Claude Code itself. A name is searched among your home folder's own folders, every folder Claude has run in, the folders opened from here and the git repos under `~/Developer`, best match first and recently used ones a little ahead. Each known folder shows its git branch and when it was last used, in columns that line up.
 
-### Past sessions
+- **↵** starts Claude in the highlighted folder, or in what is typed.
+- **Tab** completes the highlighted folder and lists its subfolders.
+- **⌥↓** opens the launch options below, **⌥↑** folds them.
+- **esc** goes back to Sessions.
 
-While a name is typed, past sessions whose title has every word typed are listed under **Sessions**, newest first; **↵** resumes one in its own folder (`claude --resume <id>`), **⌘↵** opens a new session in that folder.
+## Everywhere
 
-### Open step
-
-**↵** on a folder (or **→** with the caret at the end of the text, or a click on its session count) moves to the open step, in place of the folders: a new session first, then each one newest first, by its title (or its first message) and how long ago it ran. **↵** opens the highlighted one, a past one with `claude --resume <id>`. **←** or **esc** go back to the folders. Only the start and end of each session file are read, so even very long sessions list at once.
-
-Keys:
-- **⌥C** opens the palette. With the palette open, pressing it again opens a new session at once: **⌥C ⌥C** opens Claude straight in your home folder.
-- **⌘↵** opens a new session at once, without the session list.
-- **⌥↓** opens the options at the bottom, **⌥↑** folds them.
-- **↵** on a folder goes to the open step: a new session or one of its past ones, with the launch options below. It acts on the highlighted row, or what is typed. Nothing is highlighted until you move with the arrows or the pointer; a name that is no folder, with nothing highlighted, opens nothing.
-- **tab** completes with the highlighted row and lists that folder's subfolders. With no row highlighted it does nothing.
-- **→** at the end of the text also lists the highlighted project's sessions.
-- **↑ ↓** move through the suggestions; **↑** at the top stays there. The list only scrolls when it has to, and keeps the next row peeking. The last row is the end of the list.
+- **⌥C** opens the palette. With it open, pressing it again opens a new session at once: **⌥C ⌥C** starts Claude in your home folder.
+- **↑ ↓** move through the list; nothing is highlighted until you do, and **↑** at the top stays there.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
-- **esc**, **⌘W** or a click outside close the palette.
-- **⌘Q** with the palette open quits the app. It starts again at login or from Applications.
+- **⌘W** or a click outside close the palette; **⌘Q** quits the app (it starts again at login or from Applications).
 
-### Model, effort, permissions and session
+## Launch options and plan use
 
-On the first screen the bottom line shows only the plan's use; in the open step it sits on the right of the options. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+At the bottom of Sessions sits the plan's use; in New it sits on the right of the options. It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-In the open step (after **↵** on a folder), the line at the bottom says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
+In New, the line at the bottom says how Claude will be launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|
@@ -77,16 +70,16 @@ The colours come from the dark theme table inside `claude` itself:
 Keys in the options:
 - **↑ ↓** move between rows, and **↑** from the first goes back to the folders.
 - **← →** change the value.
-- **esc** or **⌥↑** fold the options; a second **esc** closes the palette.
+- **esc** or **⌥↑** fold the options.
 - **↵** or **⌥C** launch Claude.
 
-There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used. Every time the palette opens, the options start again from the defaults.
+There is no separate "default" value, and every time the palette opens the options start again from the defaults: the value Claude would start with anyway is marked *default*, and picking it adds no flag, so it keeps following Claude and your settings. The `effortLevel` in `settings.json` is a legacy value Claude Code no longer starts sessions with, so it is not used.
 
 The window has a fixed, transparent size and the card grows and shrinks inside it, animated, with its shadow drawn in SwiftUI. That is why opening and folding the options is smooth: the rows come in one after another.
 
 The shortcut is set in `App.swift` (`openClaudeShortcut`) and applied again on every launch. While the app runs, ⌥C no longer types "©".
 
-Opening the app from Spotlight or Finder also shows the palette. The list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
+Opening the app from Spotlight or Finder also shows the palette. The folder list shows every subfolder, with a thin scroll thumb of its own that appears while scrolling, and edges that fade when there is more above or below. The part of the path already typed is dimmed.
 
 ## Look
 

@@ -69,11 +69,6 @@ final class PaletteController: NSObject, NSWindowDelegate {
         model.onOpen = { [weak self] raw, args in self?.open(raw, args: args) }
         model.onClose = { [weak self] in self?.hide() }
         model.onFocus = { [weak self] session in self?.focus(session) }
-        model.caretAtEnd = { [panel] in
-            guard let editor = panel.fieldEditor(false, for: nil) as? NSTextView else { return true }
-            let range = editor.selectedRange()
-            return range.length == 0 && range.location >= (editor.string as NSString).length
-        }
     }
 
     var isVisible: Bool { panel.isVisible }
@@ -161,6 +156,9 @@ final class PaletteController: NSObject, NSWindowDelegate {
         if mods.contains(.command), event.charactersIgnoringModifiers == "q" {
             NSApp.terminate(nil)
             return true
+        }
+        if mods.contains(.command), event.charactersIgnoringModifiers == "n" {
+            return model.handle(.newMode)
         }
         if mods.contains(.command), event.charactersIgnoringModifiers == "w" {
             hide()
