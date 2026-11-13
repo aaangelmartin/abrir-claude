@@ -13,13 +13,13 @@ enum Motion {
     static let stagger = 0.035
 }
 
-/// the launch options at the foot of the palette, in order: model, effort, permissions, session.
+/// the launch options at the foot of the window, in order: model, effort, permissions, session.
 /// folded: one line with each value painted as claude code paints it. open (↓ past the folders, ⌘↓,
 /// or a click): a row per option, changed with ← →. the section has a known height either way, so the
 /// card grows and shrinks smoothly; the summary steps aside and the rows come in one after another.
 struct OptionsSection: View {
-    @ObservedObject var model: PaletteModel
-    let theme: PaletteTheme
+    @ObservedObject var model: MainModel
+    let theme: AppTheme
     @Namespace private var focus
 
     static let foldedHeight: CGFloat = 44
@@ -29,7 +29,7 @@ struct OptionsSection: View {
     static let rowSpacing: CGFloat = 2
     static let padding: CGFloat = 8
     /// what a control may take: the card less the row's margins and the title column
-    static let controlWidth: CGFloat = PaletteView.width - 16 - 12 - 88 - 14
+    static let controlWidth: CGFloat = MainView.width - 16 - 12 - 88 - 14
 
     static func height(of option: LaunchOption) -> CGFloat {
         switch option.style {
@@ -108,7 +108,7 @@ struct OptionsSection: View {
         .onTapGesture { if model.moment != .running { model.openOptions() } }
     }
 
-    /// the palette's shortcut as typed on its key caps, ⌥C unless another was picked
+    /// the window's shortcut as typed on its key caps, ⌥C unless another was picked
     static var shortcutText: String { KeyboardShortcuts.getShortcut(for: .openClaude)?.description ?? "⌥C" }
 
     /// over the running sessions nothing is launched: what the keys do there, said plainly
@@ -117,9 +117,13 @@ struct OptionsSection: View {
         let lit = model.selected != nil
         return HStack(spacing: 24) {
             if !model.live.isEmpty {
-                KeyHint(keys: [lit ? "↵" : "↓"], label: lit ? "Open" : "Choose", theme: theme)
-                    .frame(width: 70, alignment: .leading)
-                    .help(lit ? "Go to the session's window" : "Highlight a running session")
+                // both words take the room of the longer, so nothing is cut and nothing moves
+                ZStack(alignment: .leading) {
+                    KeyHint(keys: ["↓"], label: "Choose", theme: theme).opacity(lit ? 0 : 1)
+                    KeyHint(keys: ["↵"], label: "Open", theme: theme).opacity(lit ? 1 : 0)
+                }
+                .fixedSize()
+                .help(lit ? "Go to the session's window" : "Highlight a running session")
             }
             // the shortcut itself starts a new session, as ⌘↵ does
             KeyHint(keys: [Self.shortcutText, "⌘↵"], label: "New session", theme: theme)
@@ -161,7 +165,7 @@ struct OptionsSection: View {
 /// a key in a small cap
 struct KeyCap: View {
     let key: String
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         Text(key)
@@ -178,7 +182,7 @@ struct KeyCap: View {
 struct KeyHint: View {
     let keys: [String]
     let label: String
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         HStack(spacing: 4) {
@@ -196,7 +200,7 @@ struct KeyHint: View {
 /// they near the limit (yellow from 80 %, red from 95 %). hover for when each resets.
 struct UsageLine: View {
     let usage: Usage
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     /// the time until a window resets, short: "42m", "2h 14m", "3d 4h". without minutes (the week,
     /// where they matter little) hours stand alone: "10h"
@@ -244,7 +248,7 @@ struct UsageLine: View {
 private struct ModelName: View {
     let label: String
     let on: Bool
-    let theme: PaletteTheme
+    let theme: AppTheme
 
     var body: some View {
         if let space = label.lastIndex(of: " "), label[label.index(after: space)...].first?.isNumber == true {
@@ -258,7 +262,7 @@ private struct ModelName: View {
 
 /// the small word that marks the value claude starts with
 private struct DefaultMark: View {
-    let theme: PaletteTheme
+    let theme: AppTheme
     var body: some View {
         Text(theme.say("default"))
             .font(ClaudeFonts.sans(9.5, .medium))
@@ -270,10 +274,10 @@ private struct DefaultMark: View {
 /// light is one shape that glides from row to row. when the options open, each row drops in a moment
 /// after the one above.
 private struct OptionRow: View {
-    @ObservedObject var model: PaletteModel
+    @ObservedObject var model: MainModel
     let index: Int
     let option: LaunchOption
-    let theme: PaletteTheme
+    let theme: AppTheme
     let focus: Namespace.ID
     @State private var shown = false
 
@@ -339,7 +343,7 @@ private struct Segments: View {
     let icons: [String?]
     let picked: Int
     let marked: Int?
-    let theme: PaletteTheme
+    let theme: AppTheme
     let pick: (Int) -> Void
     @Namespace private var thumb
 
@@ -389,7 +393,7 @@ private struct EffortSlider: View {
     let levels: [Choice]
     let picked: Int
     let marked: Int
-    let theme: PaletteTheme
+    let theme: AppTheme
     let pick: (Int) -> Void
 
     @State private var dragX: CGFloat?
@@ -533,7 +537,7 @@ private struct ModePicker: View {
     let modes: [Choice]
     let picked: Int
     let marked: Int?
-    let theme: PaletteTheme
+    let theme: AppTheme
     let pick: (Int) -> Void
     @Namespace private var thumb
 
