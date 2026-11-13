@@ -1,4 +1,5 @@
 import AppKit
+import LaaabsKit
 import SwiftUI
 
 /// the palette, built as claude desktop's quick entry: one 56 pt bar with the starburst in a 56 pt
@@ -30,7 +31,7 @@ struct PaletteView: View {
             case .running:
                 divider
                 if model.live.isEmpty {
-                    hint("No Claude sessions running. Type a folder to start or resume one.")
+                    hint("No sessions running. Type a folder to start one.")
                 } else {
                     RunningList(model: model, theme: theme)
                 }
@@ -39,7 +40,7 @@ struct PaletteView: View {
                 if !model.rows.isEmpty {
                     rowsView
                 } else if let folder = model.typedFolder {
-                    hint("↵ to open \(folder.isEmpty ? "~" : folder)")
+                    hint("↵  Open \(folder.isEmpty ? "~" : folder)")
                 } else {
                     hint("No folder matches.")
                 }
@@ -48,19 +49,9 @@ struct PaletteView: View {
                 StepList(model: model, theme: theme)
             }
 
-            // how a session starts, only where one is started; the plan's use everywhere
-            if model.moment == .step {
-                divider
-                OptionsSection(model: model, theme: theme)
-            } else if let usage = model.usage {
-                divider
-                HStack {
-                    Spacer()
-                    UsageLine(usage: usage, theme: theme)
-                }
-                .padding(.trailing, 20)
-                .frame(height: 36)
-            }
+            // how a new session starts (⌥C can start one from anywhere) and the plan's use
+            divider
+            OptionsSection(model: model, theme: theme)
         }
         .frame(width: Self.width)
         .fixedSize(horizontal: false, vertical: true)
@@ -90,12 +81,18 @@ struct PaletteView: View {
             .focused($fieldFocused)
             .autocorrectionDisabled()
             .frame(height: 24)
-            .padding(.trailing, 30)
+            .padding(.trailing, 12)
+            // a quiet signature, in the brand's own type
+            Text("aaangelmartin")
+                .font(.outfit(11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.22))
+                .padding(.trailing, 20)
+                .allowsHitTesting(false)
         }
         .frame(height: Self.barHeight)
     }
 
-    private var placeholder: String { "Type a folder to start or resume" }
+    private var placeholder: String { "Open Claude in…" }
 
     private func hint(_ line: String) -> some View {
         Text(theme.say(line))
@@ -115,7 +112,7 @@ struct PaletteView: View {
 
     private var rowsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionLabel(title: "Folders", hint: "↵ open", theme: theme)
+            SectionLabel(title: "Folders", hint: "", theme: theme)
             FolderList(model: model, theme: theme)
                 // a new list (typing, tab) is a new scroll view: it always starts at the top, same margins
                 .id(model.listID)
@@ -491,7 +488,7 @@ private struct RunningList: View {
 
     var body: some View {
         ScrollingList(model: model, lines: model.live.count) {
-            SectionLabel(title: "Running", hint: "↵ go to it", theme: theme)
+            SectionLabel(title: "Running", hint: "", theme: theme)
             ForEach(Array(model.live.enumerated()), id: \.element.id) { i, s in
                 ListLine(model: model, index: i, icon: AnyView(StateDot(state: s.state)), title: s.name, folder: s.cwd,
                          trailing: AnyView(HStack(spacing: 12) {
@@ -539,7 +536,7 @@ private struct StepList: View {
                                  title: theme.say("New session"), folder: nil,
                                  trailing: AnyView(Text("↵").foregroundStyle(theme.textMuted.opacity(i == model.selected ? 0.9 : 0))), theme: theme)
                         if items.count > 1 {
-                            SectionLabel(title: "Sessions here", hint: "", theme: theme)
+                            SectionLabel(title: "Sessions", hint: "", theme: theme)
                         }
                     case let .running(s):
                         ListLine(model: model, index: i, icon: AnyView(StateDot(state: s.state)), title: s.name, folder: nil,
@@ -619,7 +616,7 @@ struct SectionLabel: View {
         }
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(theme.textMuted.opacity(0.85))
-        .padding(.leading, PaletteView.barHeight)
+        .padding(.leading, 20)
         .padding(.trailing, 20)
         .frame(height: 26, alignment: .bottom)
         .padding(.bottom, 2)

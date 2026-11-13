@@ -63,6 +63,7 @@ struct PaletteTheme {
     /// #c2c0b6, text-500 #9c9a92). the fonts are read from the installed claude app, never copied.
     static func claude() -> PaletteTheme {
         let hasFonts = ClaudeFonts.register()
+        BrandFonts.register() // outfit, for the signature
         let sans: (CGFloat, Font.Weight) -> Font = { size, weight in
             hasFonts ? .custom("Anthropic Sans", size: size).weight(weight) : .system(size: size, weight: weight)
         }

@@ -123,6 +123,11 @@ final class PaletteModel: ObservableObject {
         } else {
             rows = fuzzyRows(typed)
         }
+        // while searching, the best match is lit, so enter or the shortcut again takes it at once.
+        // not when a folder's own subfolders are listed ("Developer/"): then it is that folder
+        if !rows.isEmpty, !(typed.hasSuffix("/") && FolderPath.isDirectory(FolderPath.resolve(typed))) {
+            selected = 0
+        }
     }
 
     // MARK: what is listed
@@ -359,7 +364,7 @@ final class PaletteModel: ObservableObject {
     /// one key, wherever the arrows are. false: not ours, the field gets it (←→ move the caret there,
     /// space types a space).
     func handle(_ key: Key) -> Bool {
-        if moment == .step, key == .optionsDown { optionRow = optionRow ?? 0; return true }
+        if key == .optionsDown { optionRow = optionRow ?? 0; return true }
         if key == .optionsUp { optionRow = nil; return true }
         if let optionRow { return handleOptions(key, optionRow) }
         switch key {
@@ -411,7 +416,7 @@ final class PaletteModel: ObservableObject {
         case .jumpDown: optionRow = last
         case .left: step(row, by: -1)
         case .right: step(row, by: 1)
-        case .enter: submit()
+        case .enter: if selected != nil { submit() } else { openNew() }
         case .openNew: openNew()
         case .space, .optionsDown, .optionsUp: break
         }

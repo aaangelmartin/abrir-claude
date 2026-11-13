@@ -3,8 +3,10 @@
 A global shortcut (⌥C) opens a palette for Claude Code on your Mac. Each moment has one purpose:
 
 1. **Opened**: every Claude Code session running now, with its state. **↵** goes to it.
-2. **Typing**: folders, to start or resume a session in. **↵** opens the folder.
-3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes; model, effort and permissions sit below.
+2. **Typing**: folders, to start or resume a session in, the best match already highlighted. **↵** opens it; **⌥C** starts a new session there at once, without leaving the field.
+3. **A folder**: **New session** first and already highlighted (so **↵ ↵** starts one), then the sessions running there and its past ones, newest first. **↵** starts, goes to or resumes.
+
+Model, effort and permissions sit at the bottom all the time, since a session can start from anywhere; **⌥↓**, or a click on a value, opens them. The plan's use sits beside them as two small meters.
 
 **esc** backs out one step at a time (the folder, then what is typed, then the palette); **←** also leaves a folder. **⌥C** pressed again, or **⌘↵**, starts a new session at once: in the folder open, else in the highlighted folder or session's folder, else in your home folder. **Tab** with nothing highlighted highlights the first line.
 
@@ -27,15 +29,15 @@ Past sessions come from `~/.claude/projects`, by their title (the session's own,
 
 ## Keys
 
-- **↑ ↓** move through the list; nothing is highlighted until you do (except New session in a folder), and **↑** at the top stays there.
+- **↑ ↓** move through the list, and **↑** at the top stays there. Running sessions start with nothing highlighted; a search lights its best match (not when a path ending in `/` lists that folder's subfolders: then **↵** opens the folder itself); a folder lights New session.
 - **⌘A ⌘C ⌘V ⌘X ⌘Z** work in the field, through a hidden Edit menu.
 - **⌘W** or a click outside close the palette; **⌘Q** quits the app (it starts again at login or from Applications).
 
 ## Launch options and plan use
 
-The plan's use sits at the bottom right (beside the options in a folder). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
+The plan's use sits at the bottom right, as two small meters (the session and the week). It is the use as `/usage` gives it: the five-hour session and the week (yellow from 80 %, red from 95 %; hover for when each resets). It is read with the sign-in Claude Code keeps in the keychain, so the first time macOS asks to let Open Claude read "Claude Code-credentials". The sign-in is never refreshed by this app; when it has expired, nothing shows until Claude Code refreshes it.
 
-In a folder, the line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
+The line at the bottom says how a new or resumed session is launched: **Model, Effort, Permissions**, each value painted the way Claude Code paints it. **⌥↓** (or a click) opens it into one row per option:
 
 | Row | Control | `claude` flag |
 |---|---|---|

@@ -252,8 +252,18 @@ import Testing
         m.text = "Developer"
         _ = m.handle(.enter)
         _ = m.handle(.enter)
-        #expect(opened?.0 == "Developer")
+        #expect(opened?.0.hasPrefix("Developer") == true)
         #expect(opened?.1 == [])
+    }
+
+    @Test func searchingLightsTheBestMatchSoTheShortcutOpensIt() {
+        let m = model()
+        var opened: String?
+        m.onOpen = { raw, _ in opened = raw }
+        m.text = "Develop"
+        #expect(m.selected == 0)
+        m.hotkeyAgain()
+        #expect(opened?.hasPrefix("Developer") == true)
     }
 
     @Test func aPastSessionResumes() {
@@ -297,7 +307,7 @@ import Testing
         m.text = "Developer"
         _ = m.handle(.enter)
         m.hotkeyAgain()
-        #expect(opened == "Developer")
+        #expect(opened?.hasPrefix("Developer") == true)
     }
 
     @Test func upAtTheTopStaysThere() {

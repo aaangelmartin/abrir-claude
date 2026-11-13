@@ -127,19 +127,26 @@ struct UsageLine: View {
     let theme: PaletteTheme
 
     var body: some View {
-        HStack(spacing: 10) {
-            if let session = usage.session { window("5h", session) }
+        HStack(spacing: 14) {
+            if let session = usage.session { window("Session", session) }
             if let week = usage.week { window("Week", week) }
         }
         .font(theme.label)
     }
 
+    /// a name, a short meter filling with the use, and the percentage
     private func window(_ name: String, _ w: Usage.Window) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        let colour: Color = w.percent >= 95 ? Color(CC.error) : w.percent >= 80 ? Color(CC.warning) : Color.white.opacity(0.55)
+        return HStack(spacing: 6) {
             Text(theme.say(name)).foregroundStyle(theme.textMuted.opacity(0.8))
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.1))
+                Capsule().fill(colour).frame(width: max(3, 28 * min(w.percent, 100) / 100))
+            }
+            .frame(width: 28, height: 4)
             Text("\(Int(w.percent.rounded()))%")
                 .monospacedDigit()
-                .foregroundStyle(w.percent >= 95 ? Color(CC.error) : w.percent >= 80 ? Color(CC.warning) : theme.textSecondary)
+                .foregroundStyle(w.percent >= 80 ? colour : theme.textSecondary)
         }
         .help(w.resetsAt.map { "Resets " + $0.formatted(.relative(presentation: .named)) } ?? "")
     }

@@ -27,7 +27,7 @@ import Testing
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name + ".png"))
     }
 
-    @Test func empty() { shot("1-empty") { m in m.reset(); m.live = [] } }
+    @Test func empty() { shot("1-empty") { m in m.reset(); m.live = []; m.usage = Usage(session: .init(percent: 6, resetsAt: nil), week: .init(percent: 84, resetsAt: nil)) } }
     @Test func typing() { shot("2-typing") { m in m.projects = Self.sample(); m.text = "Dev" } }
     @Test func optionsFolded() { shot("3-folded") { m in m.reset(); m.text = "Developer"; _ = m.handle(.enter); m.usage = Usage(session: .init(percent: 6, resetsAt: nil), week: .init(percent: 84, resetsAt: nil)); m.pick(2, of: 0); m.pick(4, of: 1); m.pick(3, of: 2) } }
     @Test func optionsOpen() { shot("4-open") { m in m.reset(); m.pick(2, of: 0); m.pick(3, of: 1); m.pick(5, of: 2); m.text = "Developer"; _ = m.handle(.enter); _ = m.handle(.optionsDown); _ = m.handle(.down) } }
@@ -52,7 +52,7 @@ import Testing
             LiveSession(pid: 3, sessionId: "c", cwd: FolderPath.home + "/Developer/Priv8", name: "priv8-f3", state: .busy, waitingFor: nil, since: now.addingTimeInterval(-90)),
             LiveSession(pid: 4, sessionId: "d", cwd: FolderPath.home, name: "aaangel-62", state: .idle, waitingFor: nil, since: now.addingTimeInterval(-7200)),
         ]
-        m.refreshRows(); m.selected = 1
+        m.refreshRows(); m.selected = 1; m.usage = Usage(session: .init(percent: 6, resetsAt: nil), week: .init(percent: 71, resetsAt: nil))
     } }
     @Test func recents() { shot("12-step") { m in m.reset(); m.projects = Self.sample(); m.text = "Developer/open-claude"; _ = m.handle(.enter) } }
     @Test func fuzzy() { shot("10-fuzzy") { m in m.reset(); m.projects = Self.sample(); m.text = "abr" } }
