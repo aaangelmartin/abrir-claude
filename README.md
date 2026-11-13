@@ -105,7 +105,7 @@ The first launch opens a short setup, in Open Claude's own look, and **⌘,** br
 3. **Your shortcut**: a recorder to pick it; ⌥C by default.
 4. **You're set**: the shortcut on its key caps, which go down as you press it; pressing it there brings up Open Claude.
 
-The welcome is signed with the aaangelmartin wordmark.
+The aaangelmartin wordmark sits in the middle of its footer.
 
 ## Install
 

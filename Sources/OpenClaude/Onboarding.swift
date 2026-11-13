@@ -135,6 +135,14 @@ struct OnboardingView: View {
     }
 
     private var footer: some View {
+        ZStack {
+            // the aaangelmartin wordmark, centred in the footer on every step
+            Signature().frame(height: 11)
+            footerControls
+        }
+    }
+
+    private var footerControls: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
                 ForEach(Step.allCases, id: \.self) { s in
@@ -193,16 +201,7 @@ private struct WelcomeStep: View {
                 feature("folder", "Any folder", "Type a folder to start a new session there, or to resume one of its past ones.")
                 feature("slider.horizontal.3", "Your way", "Model, effort and permissions, right before a session starts.")
             }
-            Spacer(minLength: 0)
-            // who made it, in the aaangelmartin wordmark
-            HStack(spacing: 7) {
-                Text(theme.say("Made by")).font(theme.label).foregroundStyle(theme.textMuted.opacity(0.7))
-                Signature().frame(height: 10)
-            }
-            .padding(.leading, 48)
-            .padding(.bottom, 4)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func feature(_ icon: String, _ title: String, _ line: String) -> some View {
